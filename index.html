@@ -66,7 +66,8 @@ main{position:relative;display:grid;grid-template-columns:330px minmax(0,1fr) 35
 .maptitle{position:absolute;left:18px;top:14px;pointer-events:none}
 .maptitle .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3)}
 .maptitle .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
-.back{position:absolute;right:16px;top:14px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:7px 12px;cursor:pointer;display:none}
+.back{position:absolute;right:16px;top:14px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:7px 12px 7px 8px;cursor:pointer;display:none;align-items:center;gap:4px;font-weight:600}
+.back svg{flex:none;color:var(--acc)}
 .back:hover{border-color:var(--acc)}
 .mapsw{position:absolute;right:16px;top:58px;display:none;gap:4px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:10px;font-size:12px}
 .mapsw button{background:none;border:0;padding:5px 10px;border-radius:7px;color:var(--tx2);cursor:pointer}
@@ -155,7 +156,7 @@ header{gap:12px;flex-wrap:nowrap}.brand{white-space:nowrap}.brand small{display:
   .turns{order:3}
   .mapwrap{height:68vh;border-radius:16px}
   .maptitle{left:12px;top:10px;right:96px}.maptitle .v{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .back{right:10px;top:10px;padding:6px 10px;font-size:12px}
+  .back{right:10px;top:10px;padding:6px 10px 6px 6px;font-size:12px}
   #map{height:calc(100% - 128px);margin-top:92px}
   .mapsw{right:10px;top:50px;max-width:48%;overflow:auto}.mapsw button{white-space:nowrap;padding:5px 8px;font-size:11px}
   .mapwrap .acts{left:12px;right:auto;top:50px}.acts button{padding:5px 8px;font-size:11px}#bCsv{display:none}
@@ -229,7 +230,7 @@ header{gap:12px;flex-wrap:nowrap}.brand{white-space:nowrap}.brand small{display:
   <section class="col l" id="colL"></section>
   <section class="mapwrap">
     <div class="maptitle"><div class="k"><span id="mk">Brasil</span><span id="mkp" style="color:var(--acc);letter-spacing:.04em;text-transform:none"></span></div><div class="v" id="mv">Presidente</div></div>
-    <button class="back" id="back">← Brasil</button>
+    <button class="back" id="back" title="Voltar um nível"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Brasil</span></button>
     <div class="mapsw" id="mapsw"></div>
     <svg id="map" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet"></svg>
     <div class="legend" id="legend"></div>
@@ -436,8 +437,8 @@ async function render(fresh){
   const nomeUF=S.uf==='br'?'Brasil':UFS[S.uf][0];
   $('mk').textContent=S.mun?`${nomeUF} · ${munNm(S.mun)}`:nomeUF;
   $('mv').textContent=mapTitle();
-  $('back').style.display=S.uf==='br'?'none':'block';
-  $('back').textContent=S.mun?'← '+nomeUF:'← Brasil';
+  $('back').style.display=S.uf==='br'?'none':'flex';
+  $('back').querySelector('span').textContent=S.mun?nomeUF:'Brasil';
   const sw=$('mapsw');
   if(S.uf==='br'){sw.style.display='flex';sw.innerHTML=[['map','Mapa'],['hex','Hexágonos']].map(([k,n])=>`<button data-k="${k}" class="${(k==='hex')===S.hex?'on':''}">${n}</button>`).join('');sw.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.hex=b.dataset.k==='hex';render()})}
   else if(isProp(S.cargo)&&!['pxg','sim','desl','cand','virada'].includes(S.layer)){sw.style.display='flex';sw.innerHTML=['gov',S.cargo].map(k=>{const heavy=isProp(k)&&!AUTO_PROP.includes(S.uf);return `<button data-k="${k}" class="${k===S.mapCargo?'on':''}" title="${isProp(k)?'Candidato mais votado em cada município'+(heavy?' (carrega um arquivo por município, pode levar alguns minutos)':''):''}">${isProp(k)?'Candidato mais votado':'Partido do '+cargoNome(k,S.uf).toLowerCase()}${heavy?' (pesado)':''}</button>`}).join('');sw.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.mapCargo=b.dataset.k;render()})}
