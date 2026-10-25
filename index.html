@@ -68,6 +68,8 @@ main{position:relative;display:grid;grid-template-columns:330px minmax(0,1fr) 35
 .maptitle .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
 .back{position:absolute;right:16px;top:14px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:7px 12px 7px 8px;cursor:pointer;display:none;align-items:center;gap:4px;font-weight:600}
 .back svg{flex:none;color:var(--acc)}
+.ic{width:1em;height:1em;vertical-align:-.14em;flex:none}
+.pclose .ic{width:16px;height:16px;vertical-align:middle}
 .back:hover{border-color:var(--acc)}
 .mapsw{position:absolute;right:16px;top:58px;display:none;gap:4px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:10px;font-size:12px}
 .mapsw button{background:none;border:0;padding:5px 10px;border-radius:7px;color:var(--tx2);cursor:pointer}
@@ -273,6 +275,9 @@ const N=x=>{const v=parseFloat(String(x??'').replace(',','.'));return isNaN(v)?0
 const fmt=x=>nf.format(Math.round(N(x)));
 const isEl=x=>/^eleito/i.test(x||'');
 const pc=(x,d=2)=>N(x).toFixed(d).replace('.',',')+'%';
+// Ícones SVG no mesmo traço do botão Atualizar (herdam a cor do texto)
+const ICP={x:'<path d="M6 6l12 12M18 6L6 18"/>',ext:'<path d="M7 17L17 7"/><path d="M8 7h9v9"/>',right:'<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>'};
+const ic=k=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICP[k]}</svg>`;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ini=s=>(s||'?').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
 const dec=t=>{const p=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(p),c=>c.charCodeAt(0))))};
@@ -653,8 +658,8 @@ function simBuild(){
   const box=$('layerBox');if(!S.fin)return;
   const [A,B]=S.fin;
   const rows=[...S.elim,{sq:'outros',nm:'Demais candidatos',sg:'—'}].map(x=>{const t=S.tr[x.sq]||[0,0];return `<div class="simrow"><div class="row sm"><b>${esc(x.nm)}</b><span class="mut">${x.p!==undefined?pc(x.p):''}</span></div>
-   <label class="sl"><span style="color:${colorOf(A.sg)}">→ ${esc(A.nm.split(' ')[0])}</span><input type="range" min="0" max="100" value="${t[0]}" data-k="${x.sq}" data-i="0" style="accent-color:${colorOf(A.sg)}"><b class="num" id="v0${x.sq}">${t[0]}%</b></label>
-   <label class="sl"><span style="color:${colorOf(B.sg)}">→ ${esc(B.nm.split(' ')[0])}</span><input type="range" min="0" max="100" value="${t[1]}" data-k="${x.sq}" data-i="1" style="accent-color:${colorOf(B.sg)}"><b class="num" id="v1${x.sq}">${t[1]}%</b></label></div>`}).join('');
+   <label class="sl"><span style="color:${colorOf(A.sg)}">${ic('right')} ${esc(A.nm.split(' ')[0])}</span><input type="range" min="0" max="100" value="${t[0]}" data-k="${x.sq}" data-i="0" style="accent-color:${colorOf(A.sg)}"><b class="num" id="v0${x.sq}">${t[0]}%</b></label>
+   <label class="sl"><span style="color:${colorOf(B.sg)}">${ic('right')} ${esc(B.nm.split(' ')[0])}</span><input type="range" min="0" max="100" value="${t[1]}" data-k="${x.sq}" data-i="1" style="accent-color:${colorOf(B.sg)}"><b class="num" id="v1${x.sq}">${t[1]}%</b></label></div>`}).join('');
   box.innerHTML=`<div class="card" id="simcard"><h3><span>Simulador de 2º turno</span><span>transferência de votos</span></h3>
    <div id="simout"></div>
    <div class="presets"><button data-p="zero">Zerar</button><button data-p="prop">Proporcional</button><button data-p="a">Tudo ${esc(A.nm.split(' ')[0])}</button><button data-p="b">Tudo ${esc(B.nm.split(' ')[0])}</button></div>
@@ -700,8 +705,8 @@ async function layerBox(){
     const top=Object.entries(pairs).sort((x,y)=>y[1]-x[1]).slice(0,8),tot=eq+df||1;
     box.innerHTML=`<div class="card"><h3><span>Presidente × Governador</span><span>${w}</span></h3>
      <div class="big">${pc(df/tot*100,1)}</div><div class="mut sm" style="margin-top:6px">${S.uf==='br'||S.uf==='zz'?'das':'dos'} ${w} têm líderes de partidos diferentes nos dois cargos (${df} de ${tot})</div>
-     <div style="margin-top:14px">${listRows(top,([k,n])=>`<div class="it"><span class="pos"></span><span class="nm">${esc(k)}</span><span class="pc">${n}</span><div class="b"><div class="bar"><i style="width:${n/top[0][1]*100}%;background:var(--acc)"></i></div></div></div>`)}</div>
-     <p class="sm mut" style="margin-top:10px">Listrado no mapa: partido líder para Presidente → partido líder para Governador.</p></div>`;
+     <div style="margin-top:14px">${listRows(top,([k,n])=>`<div class="it"><span class="pos"></span><span class="nm">${esc(k).replace(' → ',` ${ic('right')} `)}</span><span class="pc">${n}</span><div class="b"><div class="bar"><i style="width:${n/top[0][1]*100}%;background:var(--acc)"></i></div></div></div>`)}</div>
+     <p class="sm mut" style="margin-top:10px">Listrado no mapa: partido líder para Presidente ${ic('right')} partido líder para Governador.</p></div>`;
     return;
   }
   const U=units(S.mapCargo),cn=cargoNome(S.mapCargo,S.uf);
@@ -883,7 +888,7 @@ async function cardsNational(tok,fresh){
 }
 async function extCard(tok,fresh){
   try{const d=await getUF('zz','pres',fresh);if(tok!==S.tok)return;const cs=cands(d),s=sec(d),e=eleit(d),t=cs.slice(0,2);
-    const h=`<div class="card extc click" id="extc" style="cursor:pointer" title="Abrir a votação no exterior"><h3><span>Exterior</span><span>${(S.munList.zz||[]).length||186} cidades · abrir ↗</span></h3>
+    const h=`<div class="card extc click" id="extc" style="cursor:pointer" title="Abrir a votação no exterior"><h3><span>Exterior</span><span>${(S.munList.zz||[]).length||186} cidades · abrir ${ic('ext')}</span></h3>
     ${t.map(x=>`<div class="row sm"><span>${'<i style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:'+colorOf(x.sg)+'"></i>'}${esc(x.nm)}</span><b class="num">${x.v?pc(x.p,1):'-'}</b></div>`).join('')}
     <div class="mut sm" style="margin-top:8px">${pc(s.p,1)} das seções apuradas · ${fmt(e.te)} eleitores. Os votos do exterior já estão no total do Brasil.</div></div>`;
     $('colL').insertAdjacentHTML('beforeend',h);$('extc').onclick=()=>go({uf:'zz',mun:null,cargo:'pres'})}catch(e){}
@@ -909,7 +914,7 @@ function mapTitle0(){
 function drawLayers(){
   const list=LAYERS.filter(([k])=>!(S.uf==='zz'&&(k==='pxg'||k==='sim'))&&!(k==='decisivo'&&isProp(S.cargo))).filter(([k])=>k==='cand'?!!S.cand:(k==='desl'||k==='abstvar'||k==='virada')?S.turn===2&&!(S.cargo==='gov'&&govDone(S.uf)):S.turn===2?!['pxg','sim'].includes(k):true);
   const el=$('layers');
-  el.innerHTML=list.map(([k,n,t])=>`<button data-k="${k}" class="${k===S.layer?'on':''}" title="${t}">${k==='cand'?esc((S.cand.nm.split(' ')[0]||'Candidato'))+' ✕':n}</button>`).join('');
+  el.innerHTML=list.map(([k,n,t])=>`<button data-k="${k}" class="${k===S.layer?'on':''}" title="${t}">${k==='cand'?esc((S.cand.nm.split(' ')[0]||'Candidato'))+' '+ic('x'):n}</button>`).join('');
   el.querySelectorAll('button').forEach(b=>b.onclick=()=>b.dataset.k==='cand'&&S.layer==='cand'?clearCand():go({layer:b.dataset.k}));
 }
 const T2_DATE=new Date('2026-10-25T00:00:00-03:00');
@@ -970,10 +975,10 @@ function pickCand(x){
 }
 function candBox(box){
   const c=S.cand;if(!c){box.innerHTML='';return}
-  const U=candUnits();if(!U.length){box.innerHTML='<div class="card"><h3><span>Desempenho do candidato</span><span><button class="xbtn" id="candX">Limpar ✕</button></span></h3><div class="mut sm">Lendo dados de '+esc(c.nm)+'…</div></div>';$('candX').onclick=clearCand;return}
+  const U=candUnits();if(!U.length){box.innerHTML='<div class="card"><h3><span>Desempenho do candidato</span><span><button class="xbtn" id="candX">Limpar '+ic('x')+'</button></span></h3><div class="mut sm">Lendo dados de '+esc(c.nm)+'…</div></div>';$('candX').onclick=clearCand;return}
   const tot=U.reduce((a,u)=>a+u.v,0),w=unitWord();
   const byShare=[...U].sort((a,b)=>b.sh-a.sh).slice(0,6),byVotes=[...U].sort((a,b)=>b.v-a.v).slice(0,4);
-  box.innerHTML=`<div class="card"><h3><span>Desempenho do candidato</span><span>${U.length}/${totalUnits()} <button class="xbtn" id="candX">Limpar ✕</button></span></h3>
+  box.innerHTML=`<div class="card"><h3><span>Desempenho do candidato</span><span>${U.length}/${totalUnits()} <button class="xbtn" id="candX">Limpar ${ic('x')}</button></span></h3>
   <div class="hero"><div class="av" style="background:${colorOf(c.sg)}"><span>${esc(ini(c.nm))}</span>${img(c.cg,c.uf||S.uf,c.sq,'avi')}</div><div style="min-width:0"><div style="font-weight:700">${esc(c.nm)}</div><div class="mut sm">${esc(c.sg)} · ${esc(cargoNome(c.cg,c.uf||S.uf))}</div></div></div>
   <div class="big" style="margin-top:14px;font-size:28px">${fmt(tot)}</div><div class="mut sm">votos ${S.uf==='br'||S.uf==='zz'?'nas':'nos'} ${w} já lidos${c.cg==='pres'&&S.uf==='br'?' (sem o exterior)':''}${isProp(c.cg)?' (considera os 40 mais votados de cada município)':''}</div>
   <div style="margin-top:14px"><div class="sm mut" style="margin-bottom:6px">Maior percentual</div>${listRows(byShare,r=>rowU(r.nome,pc(r.sh,1),fmt(r.v)+' votos'))}</div>
@@ -1007,7 +1012,7 @@ function viradaBox(box){
   box.innerHTML=`<div class="card"><h3><span>Viradas entre turnos</span><span>${U.length}/${totalUnits()-offN()}</span></h3>
    <div class="big">${F.length}</div><div class="mut sm" style="margin-top:6px">${w} em que o líder entre os dois finalistas mudou</div>
    <div class="kv" style="margin-top:12px"><div class="l"><span style="color:${colorOf(A.sg)}">Viradas para ${esc(A.nm)}</span><b class="num">${nA}</b></div><div class="l"><span style="color:${colorOf(B.sg)}">Viradas para ${esc(B.nm)}</span><b class="num">${nB}</b></div></div>
-   ${F.length?`<div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Maiores viradas (vantagem atual)</div>${listRows(F.slice(0,6),r=>rowU(r.nome,fmt(r.v.mv2),`${esc(r.v.nm1.split(' ')[0])} ${pc(r.v.s1,1)} → ${esc(r.v.nm2.split(' ')[0])} ${pc(r.v.s2,1)} · ${pc(r.v.sec,0)} apurado`))}</div>`:''}
+   ${F.length?`<div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Maiores viradas (vantagem atual)</div>${listRows(F.slice(0,6),r=>rowU(r.nome,fmt(r.v.mv2),`${esc(r.v.nm1.split(' ')[0])} ${pc(r.v.s1,1)} ${ic('right')} ${esc(r.v.nm2.split(' ')[0])} ${pc(r.v.s2,1)} · ${pc(r.v.sec,0)} apurado`))}</div>`:''}
    <p class="sm mut" style="margin-top:10px;line-height:1.4">No 1º turno, considera só os votos dos dois finalistas. Com a apuração em andamento, a vantagem do 2º turno ainda pode mudar.</p></div>`;
 }
 function deslUnits(){return units(S.mapCargo).map(u=>({...u,r:deslVal(u.uf,S.uf==='br'?null:u.id)})).filter(u=>u.r)}
@@ -1024,7 +1029,7 @@ function deslBox(box){
     head=`<div class="big">${d>=0?'+':''}${d.toFixed(2).replace('.',',')} p.p.</div><div class="mut sm" style="margin-top:6px">variação da fatia de ${esc(A.nm)} na disputa entre os dois finalistas: ${pc(s1,1)} no 1º turno e ${pc(s2,1)} no 2º</div>`}
   else head=`<div class="big">${U.length}</div><div class="mut sm" style="margin-top:6px">${w} com os dois turnos lidos</div>`;
   const up=[...U].sort((x,y)=>y.r.d-x.r.d).slice(0,5),dn=[...U].sort((x,y)=>x.r.d-y.r.d).slice(0,5);
-  const row=r=>rowU(r.nome,(r.r.d>=0?'+':'')+r.r.d.toFixed(1).replace('.',',')+' p.p.',`${esc(r.r.nmA)}: ${pc(r.r.s1,1)} → ${pc(r.r.s2,1)}`);
+  const row=r=>rowU(r.nome,(r.r.d>=0?'+':'')+r.r.d.toFixed(1).replace('.',',')+' p.p.',`${esc(r.r.nmA)}: ${pc(r.r.s1,1)} ${ic('right')} ${pc(r.r.s2,1)}`);
   box.innerHTML=`<div class="card"><h3><span>Deslocamento entre turnos</span><span>${U.length}/${totalUnits()-offN()}</span></h3>${head}
   <div style="margin-top:14px"><div class="sm mut" style="margin-bottom:6px">Maior avanço do primeiro finalista</div>${listRows(up,row)}</div>
   <div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Maior recuo</div>${listRows(dn,row)}</div>
@@ -1082,7 +1087,7 @@ function abstVarBox(box){
   if(!U.length){box.innerHTML='<div class="card"><div class="mut sm">Aguardando dados dos dois turnos…</div></div>';return}
   const te=U.reduce((s,u)=>s+u.l.te,0)||1,a1=U.reduce((s,u)=>s+u.a.abs*u.a.te,0)/te,a2=U.reduce((s,u)=>s+u.l.abs*u.l.te,0)/te,d=a2-a1;
   const up=[...U].sort((x,y)=>y.r-x.r).slice(0,5),dn=[...U].sort((x,y)=>x.r-y.r).slice(0,5);
-  const row=r=>rowU(r.nome,(r.r>=0?'+':'')+r.r.toFixed(1).replace('.',',')+' p.p.',`${pc(r.a.abs,1)} → ${pc(r.l.abs,1)}`);
+  const row=r=>rowU(r.nome,(r.r>=0?'+':'')+r.r.toFixed(1).replace('.',',')+' p.p.',`${pc(r.a.abs,1)} ${ic('right')} ${pc(r.l.abs,1)}`);
   box.innerHTML=`<div class="card"><h3><span>Abstenção entre turnos</span><span>${U.length}/${totalUnits()-offN()}</span></h3>
    <div class="big">${d>=0?'+':''}${d.toFixed(2).replace('.',',')} p.p.</div><div class="mut sm" style="margin-top:6px">de ${pc(a1,1)} no 1º turno para ${pc(a2,1)} no 2º (média ponderada pelo eleitorado)</div>
    <div style="margin-top:14px"><div class="sm mut" style="margin-bottom:6px">Maiores altas</div>${listRows(up,row)}</div>
@@ -1188,7 +1193,7 @@ function jacDraw(){
     const gnote=govDone(uf)?`${esc(nome)} elegeu o governador no 1º turno, em 4 de outubro de 2026.`:null;
     h=`<div class="jgrid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">${jacPanel('Presidente · '+nome,P,uf,'0001',true)}${jacPanel('Governador · '+nome,G,uf,'0003',true,gnote)}</div>`;
   }
-  box.innerHTML=`<div class="phead"><div><div class="ptit">Evolução da apuração · ${esc(nome)}</div><div class="mut sm">Eixo horizontal: seções apuradas. Eixo vertical: votos válidos. Passe o cursor nos nós para ver o horário do TSE.</div></div><button class="pclose" id="jclose" title="Fechar">✕</button></div>${h}
+  box.innerHTML=`<div class="phead"><div><div class="ptit">Evolução da apuração · ${esc(nome)}</div><div class="mut sm">Eixo horizontal: seções apuradas. Eixo vertical: votos válidos. Passe o cursor nos nós para ver o horário do TSE.</div></div><button class="pclose" id="jclose" title="Fechar">${ic('x')}</button></div>${h}
   <p class="sm mut" style="margin-top:14px;line-height:1.45">Cada nó é uma leitura feita por este painel, a cada 45 segundos, e fica guardada neste navegador. O TSE publica apenas o instante atual: com o painel fechado, não há registro. Para ter a curva completa, deixe o painel aberto desde o início da apuração.</p>`;
   $('jclose').onclick=jacClose;
 }
@@ -1339,7 +1344,7 @@ function bindSeats(root,set){
 function parlMini(set){
   if(!set||!set.tot)return '';
   const leg=set.grp.slice(0,8).map(([sg,n])=>`<span><i style="background:${colorOf(sg)}"></i>${esc(sg)} <span class="num" style="color:var(--tx3)">${n}</span></span>`).join('');
-  return `<div class="card" id="parl" title="Clique para abrir a composição"><h3><span>Mapa de cadeiras</span><span>abrir ↗</span></h3>${parlSvg(set)}<div class="legend2">${leg}</div></div>`;
+  return `<div class="card" id="parl" title="Clique para abrir a composição"><h3><span>Mapa de cadeiras</span><span>abrir ${ic('ext')}</span></h3>${parlSvg(set)}<div class="legend2">${leg}</div></div>`;
 }
 function setParlCur(uf,cg,set){PARL.cur={uf,cg};PARL.sets={[uf+'/'+cg]:set};if($('pmodal').classList.contains('on'))drawParl()}
 function bindParlMini(){const el=$('parl');if(!el)return;const k=PARL.cur.uf+'/'+PARL.cur.cg;bindSeats(el,PARL.sets[k]);el.onclick=openParl}
@@ -1361,7 +1366,7 @@ async function drawParl(){
   const leg=set.grp.map(([sg,n])=>`<span class="pchip" data-sg="${esc(sg)}"><i style="background:${colorOf(sg)}"></i>${esc(sg)} <b class="num">${n}</b></span>`).join('');
   const occ=set.seats.filter(s=>!s.empty);
   box.innerHTML=`<div class="phead"><div><div class="ptit">Composição · ${esc(nome)}</div><div class="mut sm">${set.n} de ${set.tot-(set.extra||0)} cadeiras definidas${cg==='sen'?` · ${set.extra} cinza: mandatos até 2031 (eleitos em 2022, fora desta base)`:''} · passe o cursor para ver o ocupante</div></div>
-   <div class="ptabs">${tabs.map(([k,n])=>`<button data-k="${k}" class="${k===cg?'on':''}">${esc(n)}</button>`).join('')}</div><button class="pclose" id="pclose" title="Fechar">✕</button></div>
+   <div class="ptabs">${tabs.map(([k,n])=>`<button data-k="${k}" class="${k===cg?'on':''}">${esc(n)}</button>`).join('')}</div><button class="pclose" id="pclose" title="Fechar">${ic('x')}</button></div>
    <div id="pchart">${parlSvg(set)}</div><div class="pleg">${leg}</div>
    <input class="lsrch" id="pq" placeholder="Filtrar por nome ou partido"><div class="pocc" id="pocc"></div>`;
   const fill=q=>{q=qn(q||'');$('pocc').innerHTML=occ.filter(s=>!q||qn(s.nm).includes(q)||qn(s.sg).includes(q)).map(s=>`<div class="po"><i style="background:${colorOf(s.sg)}"></i><span>${esc(s.nm)}</span><small>${esc(s.sg)}${s.uf&&uf==='br'?' · '+s.uf.toUpperCase():''}</small></div>`).join('')||'<span class="mut">Nenhum resultado</span>'};
