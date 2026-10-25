@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Apuração 2026 · 1º turno</title>
+<meta name="author" content="Luciano Victor">
+<meta name="description" content="Painel de apuração 2026 (1º turno), com dados do TSE. Desenvolvido por Luciano Victor com apoio de IA (Claude, Anthropic).">
+<style>
+:root{
+  --bg:#07090f;--bg2:#0c1019;--panel:#0f1420;--panel2:#141b2a;--line:#1f2940;--line2:#2a3652;
+  --tx:#e8edf7;--tx2:#9aa8c4;--tx3:#5d6b88;--acc:#7cf2c8;--warn:#f5b942;
+  --r:16px;--font:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:radial-gradient(1200px 700px at 50% 38%,#0d1424 0%,var(--bg) 62%);color:var(--tx);font-family:var(--font);font-size:14px;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,select{font:inherit;color:inherit}
+.app{display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:minmax(0,1fr);height:100vh}
+.scope select{max-width:200px;text-overflow:ellipsis}
+/* header */
+header{display:flex;align-items:center;gap:18px;padding:12px 22px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(15,20,32,.9),rgba(7,9,15,.6));backdrop-filter:blur(8px);z-index:5}
+.brand{display:flex;align-items:baseline;gap:8px;font-weight:700;letter-spacing:.14em;font-size:13px;text-transform:uppercase}
+.brand b{color:var(--acc)}.brand small{font-weight:500;color:var(--tx3);letter-spacing:.08em}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:12px}
+.tabs button{background:none;border:0;padding:7px 14px;border-radius:9px;color:var(--tx2);cursor:pointer;transition:.18s;font-weight:500;white-space:nowrap}
+.tabs button:hover{color:var(--tx)}
+.tabs button.on{background:var(--panel2);color:var(--tx);box-shadow:inset 0 0 0 1px var(--line2)}
+.tabs button:disabled{opacity:.3;cursor:not-allowed}
+.sp{flex:1}
+.scope{display:flex;align-items:center;gap:8px}
+.scope select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 10px;cursor:pointer;color:var(--tx)}
+.live{display:flex;align-items:center;gap:8px;color:var(--tx2);font-size:12px;font-variant-numeric:tabular-nums}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 0 rgba(124,242,200,.6);animation:pulse 2s infinite}
+.dot.err{background:#ff5d6c;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(124,242,200,0)}100%{box-shadow:0 0 0 0 rgba(124,242,200,0)}}
+/* main */
+main{position:relative;display:grid;grid-template-columns:330px minmax(0,1fr) 350px;gap:16px;padding:16px 22px;min-height:0}
+.col{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;position:relative}
+.card h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.big{font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.mut{color:var(--tx2)}.sm{font-size:12px}.num{font-variant-numeric:tabular-nums}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+/* map */
+.mapwrap{position:relative;min-height:0;border-radius:22px;border:1px solid var(--line);background:radial-gradient(600px 400px at 50% 45%,rgba(124,242,200,.045),transparent 70%),rgba(8,11,18,.55);overflow:hidden}
+#map{width:100%;height:100%;display:block}
+#map path{stroke:#05070c;stroke-width:.6;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .5s,opacity .3s,stroke .15s}
+#map path:hover{stroke:#fff;stroke-width:1.4}
+#map path.t2u{stroke:#f5b942;stroke-width:2;stroke-dasharray:5 3}
+#map path.sel{stroke:var(--acc);stroke-width:2}
+#map.fade{opacity:0;transform:scale(.985)}
+#map{transition:opacity .22s,transform .22s}
+.maptitle{position:absolute;left:18px;top:14px;pointer-events:none}
+.maptitle .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3)}
+.maptitle .v{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.back{position:absolute;right:16px;top:14px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:7px 12px;cursor:pointer;display:none}
+.back:hover{border-color:var(--acc)}
+.mapsw{position:absolute;right:16px;top:58px;display:none;gap:4px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:10px;font-size:12px}
+.mapsw button{background:none;border:0;padding:5px 10px;border-radius:7px;color:var(--tx2);cursor:pointer}
+.mapsw button.on{background:var(--panel2);color:var(--tx);box-shadow:inset 0 0 0 1px var(--line2)}
+.legend{position:absolute;left:18px;bottom:14px;display:flex;gap:12px;flex-wrap:wrap;max-width:70%;font-size:12px;color:var(--tx2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.prog{position:absolute;right:16px;bottom:14px;width:190px;font-size:11px;color:var(--tx3);display:none}
+.prog div{height:3px;background:var(--line);border-radius:3px;margin-top:5px;overflow:hidden}.prog b{display:block;height:100%;background:var(--acc);width:0;transition:width .2s}
+.tip{position:fixed;pointer-events:none;background:rgba(10,14,22,.96);border:1px solid var(--line2);border-radius:12px;padding:10px 12px;font-size:12px;z-index:20;opacity:0;transition:opacity .1s;min-width:160px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.tip b{display:block;font-size:13px;margin-bottom:3px}
+/* ring */
+.ring{--p:0;width:92px;height:92px;border-radius:50%;background:conic-gradient(var(--acc) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center;transition:.6s;flex:none}
+.ring span{width:74px;height:74px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:8px;background:var(--line);overflow:hidden;display:flex}
+.bar>i{display:block;height:100%;transition:width .6s}
+.kv{display:flex;flex-direction:column;gap:11px}
+.kv .l{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px;color:var(--tx2)}.kv .l b{color:var(--tx);font-weight:600}
+/* leader */
+.hero{display:flex;gap:14px;align-items:center}
+.av{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;font-weight:700;font-size:20px;color:#04060a;flex:none}
+.pill{display:inline-block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:20px;border:1px solid var(--line2);color:var(--tx2);margin-top:6px}
+.pill.ok{color:#04120d;background:var(--acc);border-color:var(--acc)}.pill.t2{color:var(--warn);border-color:rgba(245,185,66,.5)}
+.rk{display:flex;flex-direction:column;gap:10px}
+.rk .it{display:grid;grid-template-columns:22px 1fr auto;gap:2px 10px;align-items:center;cursor:default}
+.rk .it.click{cursor:pointer}.rk .it.click:hover .nm{color:var(--acc)}
+.rk .pos{color:var(--tx3);font-size:12px;font-variant-numeric:tabular-nums}
+.rk .nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.15s}
+.rk .nm small{color:var(--tx3);font-weight:500;margin-left:6px}
+.rk .pc{font-weight:700;font-variant-numeric:tabular-nums}
+.rk .b{grid-column:2/4}.rk .vt{grid-column:2/4;font-size:11px;color:var(--tx3);margin-top:-2px}
+.sw{width:3px;height:100%}
+footer{padding:9px 22px;border-top:1px solid var(--line);color:var(--tx3);font-size:11px;display:flex;justify-content:space-between;gap:12px}
+.err{color:#ff8d98}
+/* skeleton */
+.sk{background:linear-gradient(90deg,var(--line) 25%,var(--line2) 37%,var(--line) 63%);background-size:400% 100%;animation:sk 1.4s infinite;border-radius:8px;height:14px}
+@keyframes sk{0%{background-position:100% 0}100%{background-position:0 0}}
+
+.vr{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.vr .st{display:inline-block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:20px;margin-bottom:8px}
+.vr .st.ok{background:var(--acc);color:#04120d}.vr .st.q{border:1px solid rgba(245,185,66,.5);color:var(--warn)}.vr .st.o{border:1px solid var(--line2);color:var(--tx2)}
+.band{position:relative;height:8px;border-radius:8px;background:var(--line);margin-top:6px}.band i{position:absolute;top:0;height:100%;border-radius:8px;opacity:.45}.band b{position:absolute;top:-3px;width:2px;height:14px;background:#fff;border-radius:2px}
+@media(min-width:641px){.mapwrap .acts{top:auto!important;bottom:58px}.prog{left:22px;right:22px;top:0;bottom:auto!important;width:auto;z-index:4}.prog #progtx{display:none}.prog div{margin-top:0;height:2px}.legend{max-width:calc(100% - 330px)}}
+@media(max-width:1100px){
+  body{overflow:auto}.app{height:auto;min-height:100vh}
+  main{display:flex;flex-direction:column;padding:12px}
+  .mapwrap{height:60vh;order:-1}
+  header{flex-wrap:wrap}.tabs{overflow:auto;max-width:100%}
+}
+
+.stack{display:flex;flex-direction:column;gap:14px}.stack:empty{display:none}
+.layers{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;display:flex;gap:3px;background:rgba(15,20,32,.88);border:1px solid var(--line);padding:3px;border-radius:12px;backdrop-filter:blur(8px);max-width:96%;overflow:auto}
+.layers button{background:none;border:0;padding:6px 11px;border-radius:9px;color:var(--tx2);cursor:pointer;white-space:nowrap;font-size:12px;font-weight:500;transition:.15s}
+.layers button:hover{color:var(--tx)}.layers button.on{background:var(--panel2);color:var(--acc);box-shadow:inset 0 0 0 1px var(--line2)}
+.legend{bottom:58px}.prog{bottom:58px}
+.legend .grad{display:inline-block;width:90px;height:8px;border-radius:6px;background:linear-gradient(90deg,#18213a,#7cf2c8);margin:0 6px}
+.av{position:relative;overflow:hidden}.av .avi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rk .nm img.ph{width:20px;height:20px;border-radius:6px;object-fit:cover;vertical-align:-5px;margin-right:7px}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 12px}
+.presets button{background:var(--panel);border:1px solid var(--line2);border-radius:9px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--tx2)}
+.presets button:hover{border-color:var(--acc);color:var(--tx)}
+.simrow{padding:10px 0;border-top:1px solid var(--line)}
+.sl{display:grid;grid-template-columns:78px 1fr 40px;gap:8px;align-items:center;font-size:11.5px;margin-top:6px}
+.sl input{width:100%;height:4px}
+.eff{display:flex;flex-direction:column;gap:9px}
+.er{display:grid;grid-template-columns:78px 1fr 42px;gap:2px 8px;align-items:center;font-size:12.5px}
+.er .eb{display:flex;flex-direction:column;gap:3px}.er .eb .bar{height:5px}
+.er .vt{grid-column:2/4;margin-top:1px}.up{color:var(--acc)}.dn{color:#ff8d98}
+.tl{display:block;margin-top:12px;color:var(--acc);font-size:12.5px;text-decoration:none}.tl:hover,.tl2:hover{text-decoration:underline}
+.tl2{color:inherit;text-decoration:none}
+.cred{color:var(--tx2);white-space:nowrap}.cred b{color:var(--acc);font-weight:600}footer{flex-wrap:wrap}
+.turns{display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:12px}.turns button{background:none;border:0;padding:6px 11px;border-radius:9px;color:var(--tx2);cursor:pointer;font-size:12.5px;white-space:nowrap}.turns button.on{background:var(--panel2);color:var(--acc)}.turns button:disabled{opacity:.35;cursor:not-allowed}
+.srch{position:relative}.srch input{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 11px;color:var(--tx);width:160px;font-size:12.5px}.srch input:focus{outline:0;border-color:var(--acc)}
+.qres{display:none;position:absolute;top:38px;left:0;width:340px;max-height:340px;overflow:auto;background:#0a0e16;border:1px solid var(--line2);border-radius:12px;z-index:30;box-shadow:0 12px 40px rgba(0,0,0,.5)}.qi{padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;font-size:12.5px}.qi:hover{background:var(--panel2)}.qi span{color:var(--tx3);font-size:11px;white-space:nowrap}
+.mapwrap .acts{position:absolute;right:16px;top:102px;display:flex;gap:4px}.acts button{background:rgba(15,20,32,.88);border:1px solid var(--line);border-radius:9px;padding:6px 10px;color:var(--tx2);cursor:pointer;font-size:12px}.acts button:hover{border-color:var(--acc);color:var(--tx)}
+.toast{position:fixed;left:50%;bottom:54px;transform:translateX(-50%);background:#0a0e16;border:1px solid var(--line2);border-radius:10px;padding:9px 14px;font-size:12.5px;opacity:0;transition:opacity .2s;z-index:40;pointer-events:none}
+.legend2{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--tx2);margin-top:8px}.legend2 i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+.rk .it.click{cursor:pointer}.rk .it.click:hover .nm{color:var(--acc)}
+#map text.hl{fill:#fff;stroke:#05070c;stroke-width:3;paint-order:stroke;font-size:13px;font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+header{gap:12px;flex-wrap:nowrap}.brand{white-space:nowrap}.brand small{display:none;white-space:nowrap}.live{white-space:nowrap}.tabs button{padding:7px 10px}.scope .mut{display:none}.sp{min-width:0}
+@media(max-width:640px){
+  html,body{overflow-x:hidden;max-width:100%}.app{max-width:100vw;overflow-x:hidden}
+  .tabs{max-width:calc(100vw - 24px);flex:0 1 auto;min-width:0}.layers{max-width:calc(100% - 16px)}
+  header{padding:10px 12px;gap:8px}.brand{font-size:12px}
+  .srch{flex:1 1 100%;order:5}.srch input,.srch input:focus{width:100%}.qres{width:100%}
+  .scope{order:4}.live{order:6;width:100%}
+  .turns{order:3}
+  .mapwrap{height:68vh;border-radius:16px}
+  .maptitle{left:12px;top:10px;right:96px}.maptitle .v{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .back{right:10px;top:10px;padding:6px 10px;font-size:12px}
+  #map{height:calc(100% - 128px);margin-top:92px}
+  .mapsw{right:10px;top:50px;max-width:48%;overflow:auto}.mapsw button{white-space:nowrap;padding:5px 8px;font-size:11px}
+  .mapwrap .acts{left:12px;right:auto;top:50px}.acts button{padding:5px 8px;font-size:11px}#bCsv{display:none}
+  .legend{left:12px;bottom:56px;max-width:calc(100% - 90px);font-size:11px;gap:6px 10px}.legend .lcap{display:none}
+  .prog{display:none!important}
+  .card{padding:14px}.big{font-size:28px}
+  footer{flex-direction:column;gap:4px;padding:10px 12px}
+  .pbox{padding:16px}
+}
+@media(min-width:1650px){.brand small{display:inline}.scope .mut{display:inline}}
+@media(max-width:1100px){header{flex-wrap:wrap}}
+.srch input{width:190px}.srch input:focus{width:300px}.srch input{transition:width .15s}
+#jmodal{position:fixed;inset:0;background:rgba(3,5,10,.74);backdrop-filter:blur(6px);z-index:60;display:none;align-items:center;justify-content:center}#jmodal.on{display:flex}
+#pmodal{position:fixed;inset:0;background:rgba(3,5,10,.74);backdrop-filter:blur(6px);z-index:60;display:none;align-items:center;justify-content:center}#pmodal.on{display:flex}
+.pbox{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:18px;width:min(940px,94vw);max-height:92vh;overflow:auto;padding:20px 24px}
+.phead{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.ptit{font-size:18px;font-weight:700}
+.ptabs{display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:11px;margin-left:auto}.ptabs button{background:none;border:0;color:var(--tx2);padding:6px 11px;border-radius:8px;cursor:pointer;font-size:12.5px}.ptabs button.on{background:var(--acc);color:#05070c;font-weight:600}
+.pclose{background:none;border:1px solid var(--line);color:var(--tx2);border-radius:9px;width:32px;height:32px;cursor:pointer}.pclose:hover{color:#fff;border-color:var(--line2)}
+#pchart{margin:10px auto 0;max-width:760px}.pleg{display:flex;flex-wrap:wrap;gap:6px 8px;justify-content:center;margin-top:6px}
+.pchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--tx2);cursor:default}.pchip i{width:9px;height:9px;border-radius:50%;display:inline-block}.pchip:hover{border-color:var(--line2);color:#fff}
+.pocc{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:3px 18px;margin-top:12px;font-size:12.5px}.po{display:flex;gap:8px;align-items:center;padding:3px 0;border-bottom:1px solid var(--line)}.po i{width:8px;height:8px;border-radius:50%;flex:none}.po span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.po small{color:var(--tx3)}
+.lsrch{width:100%;margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px;color:var(--tx);font-size:12.5px}.lsrch:focus{outline:0;border-color:var(--acc)}
+#ptip{position:fixed;z-index:90;pointer-events:none;background:#0a0e16;border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-size:12.5px;display:none;max-width:260px;line-height:1.45}
+#parl{cursor:pointer}#parl:hover{border-color:var(--line2)}.psv circle{transition:opacity .15s}.psv circle:hover{stroke:#fff;stroke-width:1.4}
+.xbtn{background:none;border:1px solid var(--line2);color:var(--tx2);border-radius:8px;padding:2px 8px;font-size:11px;cursor:pointer;margin-left:8px;letter-spacing:0;text-transform:none}.xbtn:hover{color:#fff;border-color:var(--acc)}
+.wbtn{display:grid;place-items:center;width:34px;height:34px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--tx2);cursor:pointer;flex:none}.wbtn:hover{border-color:var(--acc);color:var(--tx)}.wbtn.on{border-color:var(--acc);color:var(--acc);background:var(--panel2)}
+#map text.zl{font-size:7.4px;stroke-width:2.2;font-weight:600}
+.jgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
+.jc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}.jc h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);font-weight:600;display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+.jc.big{padding:14px 16px}.jsv{width:100%;display:block}.jsv circle:hover{stroke:#fff;stroke-width:1.5}
+.jempty{color:var(--tx2);font-size:12.5px;line-height:1.5;padding:18px 4px}
+.extc .row+.row{margin-top:6px}
+/* telas médias (notebooks de 13" a 15", ou zoom de 125% a 150%) */
+@media(max-width:1440px) and (min-width:1101px){
+  main{grid-template-columns:clamp(240px,21vw,330px) minmax(0,1fr) clamp(260px,23vw,350px);gap:12px;padding:12px 16px}
+  header{padding:9px 16px;gap:10px}
+  .tabs button{padding:6px 9px;font-size:13px}.turns button{padding:5px 9px;font-size:12px}
+  .srch input{width:150px}.srch input:focus{width:230px}
+  .live{min-width:0;overflow:hidden}.live #stamp{overflow:hidden;text-overflow:ellipsis}
+  .maptitle .v{font-size:19px}
+  .layers button{padding:5px 8px;font-size:11.5px}
+  .mapwrap .acts{flex-direction:column;align-items:stretch;right:12px}.acts button{padding:5px 8px;font-size:11.5px}
+  .legend{max-width:calc(100% - 140px);gap:6px 10px;font-size:11.5px}
+  .card{padding:13px 15px}.big{font-size:29px}.ring{width:80px;height:80px}.ring span{width:64px;height:64px;font-size:14px}
+  .av{width:50px;height:50px;font-size:18px}
+  .hero .big{font-size:25px!important}.card h3{gap:8px}
+}
+@media(max-height:820px) and (min-width:1101px){
+  header{padding-top:7px;padding-bottom:7px}main{padding-top:10px;padding-bottom:10px}
+  .col{gap:10px}.card{padding:12px 14px}.card h3{margin-bottom:8px}.kv{gap:8px}.big{font-size:27px}
+  .ring{width:74px;height:74px}.ring span{width:60px;height:60px;font-size:13px}
+  footer{padding:6px 16px}
+}
+@media(max-width:1180px) and (min-width:1101px){.srch{display:none}}
+.legend .lcap{flex-basis:100%;font-size:11px;color:var(--tx3);line-height:1.35;max-width:470px;margin-top:-2px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><b>Apuração</b> 2026 <small>1º turno · 04/10/2026</small></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="turns" id="turns"></div>
+  <div class="srch"><input id="q" type="search" placeholder="Candidato ou município" autocomplete="off"><div class="qres" id="qres"></div></div>
+  <div class="sp"></div>
+  <div class="scope"><span class="mut sm">Abrangência</span><button class="wbtn" id="bWorld" title="Votação no exterior"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.8 3.9 5.8 3.9 9s-1.3 6.2-3.9 9c-2.6-2.8-3.9-5.8-3.9-9S9.4 5.8 12 3z"/></svg></button><select id="ufsel"></select></div>
+  <div class="live"><span class="dot" id="dot"></span><span id="stamp">carregando…</span></div>
+</header>
+<main>
+  <section class="col l" id="colL"></section>
+  <section class="mapwrap">
+    <div class="maptitle"><div class="k"><span id="mk">Brasil</span><span id="mkp" style="color:var(--acc);letter-spacing:.04em;text-transform:none"></span></div><div class="v" id="mv">Presidente</div></div>
+    <button class="back" id="back">← Brasil</button>
+    <div class="mapsw" id="mapsw"></div>
+    <svg id="map" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="legend" id="legend"></div>
+    <div class="layers" id="layers"></div>
+    <div class="acts"><button id="bJac" title="Gráfico de evolução da apuração (boca de jacaré)">Evolução</button><button id="bShare" title="Compartilhar esta visão">Compartilhar</button><button id="bWa" title="Enviar pelo WhatsApp">WhatsApp</button><button id="bPng" title="Baixar o mapa como imagem">PNG</button><button id="bCsv" title="Baixar a tabela desta visão">CSV</button></div>
+    <div class="prog" id="prog"><span id="progtx"></span><div><b id="progbar"></b></div></div>
+  </section>
+  <section class="col r" id="colR"><div id="layerBox" class="stack"></div><div id="mainBox" class="stack"></div><div id="trendBox" class="stack"></div></section>
+</main>
+<footer><span>Fonte: TSE · resultados.tse.jus.br · malhas: IBGE. Dados em apuração oficial; podem sofrer retificação.</span><span class="cred">Desenvolvido por <b>Luciano Victor</b> com apoio de IA (Claude, Anthropic) · v. 6.0</span><span id="foot"></span></footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+'use strict';
+const BASE='https://resultados.tse.jus.br/oficial/ele2026';
+const IBGE='https://servicodados.ibge.gov.br/api/v3/malhas';
+const CARGOS={
+pres:{cd:'0001',ele:'6257',ele2:'6258',nome:'Presidente',maj:true},
+gov:{cd:'0003',ele:'6259',ele2:'6260',nome:'Governador',maj:true},
+sen:{cd:'0005',ele:'6259',nome:'Senador',maj:true},
+df:{cd:'0006',ele:'6259',nome:'Dep. Federal',maj:false},
+de:{cd:'0007',ele:'6259',nome:'Dep. Estadual',maj:false}
+};
+const UFS={ac:['Acre','12'],al:['Alagoas','27'],ap:['Amapá','16'],am:['Amazonas','13'],ba:['Bahia','29'],ce:['Ceará','23'],df:['Distrito Federal','53'],es:['Espírito Santo','32'],go:['Goiás','52'],ma:['Maranhão','21'],mt:['Mato Grosso','51'],ms:['Mato Grosso do Sul','50'],mg:['Minas Gerais','31'],pa:['Pará','15'],pb:['Paraíba','25'],pr:['Paraná','41'],pe:['Pernambuco','26'],pi:['Piauí','22'],rj:['Rio de Janeiro','33'],rn:['Rio Grande do Norte','24'],rs:['Rio Grande do Sul','43'],ro:['Rondônia','11'],rr:['Roraima','14'],sc:['Santa Catarina','42'],sp:['São Paulo','35'],se:['Sergipe','28'],to:['Tocantins','17']};
+const UFKEYS=Object.keys(UFS);
+const IBGE2UF=Object.fromEntries(UFKEYS.map(k=>[UFS[k][1],k]));
+UFS.zz=['Exterior','zz'];/* fora de UFKEYS: só Presidente, sem malha do IBGE */
+const PCOL={PL:'#4f8cff',PT:'#ff4d5e',NOVO:'#f5b942',PSD:'#37d6a5',MDB:'#ff8a3d',PSDB:'#38c8e8',UNIÃO:'#b07cff',PP:'#8fd14f',REPUBLICANOS:'#2fb7d6',PSB:'#ff7a59',PDT:'#e86fa8',PSOL:'#d94fd0',PODE:'#7fd1b9',AVANTE:'#c8a2ff',MISSÃO:'#e0e04a',PCdoB:'#e0405a',PV:'#5fc46b','FEDERAÇÃO BRASIL DA ESPERANÇA':'#ff4d5e'};
+const EXTRA=['#c9c9d6','#9bd34a','#ffb3c1','#7aa2ff','#e5c07b','#56d3c1','#ff9f68'];
+const colorOf=sg=>{sg=(sg||'').toUpperCase();if(PCOL[sg])return PCOL[sg];let h=0;for(const c of sg)h=(h*31+c.charCodeAt(0))>>>0;return EXTRA[h%EXTRA.length]};
+const LAYERS=[['lider','Líder','Candidato ou partido mais votado'],['margem','Margem','Diferença entre o 1º e o 2º colocado'],['decisivo','Decisivo','Onde brancos e nulos superam a margem'],['abst','Abstenção','Percentual de abstenção'],['pxg','Pres × Gov','Líder para Presidente versus líder para Governador'],['sim','2º turno','Simulador de transferência de votos']];
+LAYERS.push(['bolhas','Votos absolutos','Círculos proporcionais à vantagem do líder em número de votos'],['abstvar','Abstenção 1º × 2º','Variação da abstenção entre os dois turnos']);
+LAYERS.push(['virada','Viradas','Onde o líder entre os dois finalistas mudou do 1º para o 2º turno']);
+LAYERS.push(['desl','Deslocamento','Mudança do 1º para o 2º turno na disputa entre os finalistas'],['cand','Candidato','Desempenho de um candidato em cada município']);
+
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat('pt-BR');
+const N=x=>{const v=parseFloat(String(x??'').replace(',','.'));return isNaN(v)?0:v};
+const fmt=x=>nf.format(Math.round(N(x)));
+const isEl=x=>/^eleito/i.test(x||'');
+const pc=(x,d=2)=>N(x).toFixed(d).replace('.',',')+'%';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ini=s=>(s||'?').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const dec=t=>{const p=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(p),c=>c.charCodeAt(0))))};
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+/* ===== dados ===== */
+const cache=new Map();const inflight=new Map();
+const eleOf=(cg,t)=>{t=t||S.turn;const C=CARGOS[cg];return t===2?(C.ele2||C.ele):C.ele};
+const govDone=uf=>!!(S.govT2&&uf&&uf!=='br'&&!S.govT2.has(uf));
+function dataUrl(uf,cg,mun,t){
+  t=t||S.turn;if(t===2&&cg==='gov'&&govDone(uf))t=1;
+  const C=CARGOS[cg];const e=eleOf(cg,t);const cd=(uf==='df'&&cg==='de')?'0008':C.cd;
+  return `${BASE}/${e}/dados/${uf}/${mun?uf+mun:uf}-c${cd}-e00${e}-u.jws`;
+}
+const brpres=t=>`${BASE}/${eleOf('pres',t)}/dados/br/br-c0001-e00${eleOf('pres',t)}-u.jws`;
+async function getJ(url,fresh){
+  const hit=cache.get(url);if(hit&&!fresh)return hit.d;
+  if(inflight.has(url)&&!fresh)return inflight.get(url);
+  const sig=(typeof AbortSignal!=='undefined'&&AbortSignal.timeout)?AbortSignal.timeout(20000):undefined;/* TSE lento: desiste em 20 s e tenta no próximo ciclo */
+  const p=fetch(url,{cache:fresh?'no-cache':'default',signal:sig}).then(async r=>{
+    if(!r.ok)throw new Error(r.status);
+    let d=dec(await r.text());if(/-c000[678]-/.test(url))d=slim(d);cache.set(url,{d,at:Date.now()});try{jrec(url,d)}catch(e){}return d;
+  }).finally(()=>inflight.delete(url));
+  inflight.set(url,p);return p;
+}
+const getUF=(uf,cg,fresh,t)=>getJ(dataUrl(uf,cg,null,t),fresh);
+const getMun=(uf,cd,cg,fresh,t)=>getJ(dataUrl(uf,cg,cd,t),fresh);
+async function pool(items,n,fn){let i=0;const w=Array.from({length:n},async()=>{while(i<items.length){const k=items[i++];try{await fn(k)}catch(e){}}});await Promise.all(w)}
+function slim(d){
+  const c=d.carg&&d.carg[0];if(!c)return d;const all=[],pt=[],el={};
+  for(const a of c.agr||[])for(const p of a.par||[]){pt.push({sg:p.sg,nm:p.nm,v:N(p.tvtn)});
+    for(const k of p.cand||[]){const e=isEl(k.st);if(e)el[p.sg]=(el[p.sg]||0)+1;all.push({n:k.n,sq:k.sqcand,nm:k.nmu||k.nm,sg:p.sg,v:N(k.vap),p:N(k.pvapn),st:k.st||'',e:e})}}
+  all.sort((a,b)=>b.v-a.v);
+  d.__c=all.filter((x,i)=>i<40||x.e);d.__p=pt;d.__el=el;d.carg=[{cd:c.cd,nv:c.nv,qe:c.qe,agr:[]}];return d;
+}
+function cands(d){
+  if(d.__c)return d.__c;
+  const c=d.carg&&d.carg[0];if(!c)return[];const out=[];
+  for(const a of c.agr||[])for(const p of a.par||[])for(const k of p.cand||[])
+    out.push({n:k.n,sq:k.sqcand,nm:k.nmu||k.nm,sg:p.sg,v:N(k.vap),p:N(k.pvapn),st:k.st||'',e:isEl(k.st)});
+  out.sort((a,b)=>b.v-a.v);return out;
+}
+function partidos(d){
+  let out=[];
+  if(d.__p)out=d.__p.map(x=>({...x}));
+  else{const c=d.carg&&d.carg[0];if(!c)return[];
+    for(const a of c.agr||[])for(const p of a.par||[])out.push({sg:p.sg,v:N(p.tvtn),nm:p.nm});}
+  const t=out.reduce((s,x)=>s+x.v,0)||1;out.forEach(x=>x.p=x.v/t*100);
+  return out.sort((a,b)=>b.v-a.v);
+}
+const sec=d=>({ts:N(d.s?.ts),st:N(d.s?.st),p:N(d.s?.pstn)});
+const eleit=d=>({te:N(d.e?.te),c:N(d.e?.c),pc:N(d.e?.pcn),a:N(d.e?.a),pa:N(d.e?.pan)});
+const votos=d=>({vv:N(d.v?.vv||d.v?.vvc),vb:N(d.v?.vb),vn:N(d.v?.tvn||d.v?.vn),tv:N(d.v?.tv)});
+const photo=(cg,uf,sq,t)=>sq?`${BASE}/${eleOf(cg,t)}/fotos/${cg==='pres'?'br':uf}/${sq}.jpeg`:'';
+const img=(cg,uf,sq,cls)=>{if(!sq)return '';const a=photo(cg,uf,sq),b=photo(cg,uf,sq,1);return `<img class="${cls}" loading="lazy" src="${a}" data-alt="${a!==b?b:''}" onerror="var x=this.dataset.alt;if(x){this.dataset.alt='';this.src=x}else this.remove()" alt="">`};
+
+/* ===== geometria ===== */
+const geo={};
+async function geoBR(){
+  if(geo.br)return geo.br;
+  const g=await fetch(`${IBGE}/paises/BR?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=UF`).then(r=>r.json());
+  return geo.br=project(g.features.map(f=>({id:IBGE2UF[f.properties.codarea],geom:f.geometry})));
+}
+async function geoUF(uf){
+  if(geo[uf])return geo[uf];
+  if(uf==='zz')return geo.zz=await zzTiles();
+  const g=await fetch(`${IBGE}/estados/${UFS[uf][1]}?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=municipio`).then(r=>r.json());
+  return geo[uf]=project(g.features.map(f=>({id:f.properties.codarea,geom:f.geometry})));
+}
+/* exterior: uma peça por cidade, em ordem alfabética */
+async function zzTiles(){
+  const mu=[...await muniList('zz')].sort((a,b)=>a.nm.localeCompare(b.nm));
+  const C=13,R=Math.ceil(mu.length/C),pt=88,pb=150,W=800,pad=20,pr=118,g=3;
+  const w=(W-pad-pr-(C-1)*g)/C,h=Math.min(w*.78,(800-pt-pb-(R-1)*g)/R),oy=pt+((800-pt-pb)-(R*h+(R-1)*g))/2;
+  const sh=n=>{n=n.replace(/^(SAO|SÃO|SANTA|SAN|LOS|LAS|LA|EL|NOVA|NEW)\s/i,m=>m[0]+'. ');return n.length>9?n.slice(0,8)+'.':n};
+  return mu.map((m,i)=>{const c=i%C,r=Math.floor(i/C),x=pad+c*(w+g),y=oy+r*(h+g);
+    return {id:m.cdi,d:`M${x.toFixed(1)} ${y.toFixed(1)}h${w.toFixed(1)}v${h.toFixed(1)}h${(-w).toFixed(1)}Z`,lab:sh(m.nm),cls:'zl',x:x+w/2,y:y+h/2}});
+}
+function project(items){
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  const each=(g,fn)=>{const polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;polys.forEach(p=>p.forEach(r=>r.forEach(fn)))};
+  items.forEach(i=>each(i.geom,([x,y])=>{x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}));
+  const k=Math.cos(((y0+y1)/2)*Math.PI/180),W=800,H=800,pad=26,pt=84,pb=124;
+  const sc=Math.min((W-2*pad)/((x1-x0)*k),(H-pt-pb)/(y1-y0));
+  const ox=(W-(x1-x0)*k*sc)/2,oy=pt+(H-pt-pb-(y1-y0)*sc)/2;
+  items.forEach(i=>{let d='';
+    const polys=i.geom.type==='Polygon'?[i.geom.coordinates]:i.geom.coordinates;
+    polys.forEach(p=>p.forEach(r=>{d+='M'+r.map(([x,y])=>((x-x0)*k*sc+ox).toFixed(1)+' '+((y1-y)*sc+oy).toFixed(1)).join('L')+'Z'}));
+    i.d=d;});
+  return items;
+}
+
+/* ===== estado ===== */
+const S={turn:1,cand:null,hex:false,t2ok:false,cargo:'pres',uf:'br',mun:null,mapCargo:'pres',layer:'lider',tok:0,munList:{},fin:null,elim:[],tr:{}};
+const MAJ=['pres','gov','sen'];
+const isProp=cg=>cg==='df'||cg==='de';
+const cargoNome=(cg,uf)=>cg==='de'&&uf==='df'?'Dep. Distrital':CARGOS[cg].nome;
+const muniList=async uf=>{
+  if(S.munList[uf])return S.munList[uf];
+  const cm=await getJ(`${BASE}/6257/config/mun-e006257-cm.jws`);
+  for(const a of cm.abr){S.munList[a.cd]=a.mu;if(a.cd==='zz')a.mu.forEach(m=>{m.cdi='x'+m.cd})}
+  return S.munList[uf]||[];
+};
+const munCd=ibge=>{const m=(S.munList[S.uf]||[]).find(x=>x.cdi===ibge);return m?m.cd:null};
+const munNm=cd=>{for(const u in S.munList){const m=S.munList[u].find(x=>x.cd===cd&&(S.uf==='br'||u===S.uf));if(m)return m.nm}return ''};
+const K=(cg,uf,m,t)=>`${(t||S.turn)===2?'2/':''}${uf}:${cg}${m?':'+m:''}`;
+const AUTO_PROP=['ac','ap','rr','ro','es','se','am','ms'];
+const defMap=()=>(S.uf==='br'||MAJ.includes(S.cargo))?S.cargo:(AUTO_PROP.includes(S.uf)?S.cargo:'gov');
+const simCg=()=>S.uf==='br'?'pres':'gov';
+const need=()=>S.layer==='pxg'?['pres','gov']:S.layer==='sim'?[simCg()]:S.layer==='cand'&&S.cand?[S.cand.cg]:[S.mapCargo];
+
+/* ===== UI estática ===== */
+const tabs=$('tabs');
+Object.entries(CARGOS).forEach(([k,c])=>{const b=document.createElement('button');b.textContent=c.nome;b.dataset.k=k;b.onclick=()=>go({cargo:k});tabs.appendChild(b)});
+const sel=$('ufsel');sel.innerHTML='<option value="br">Brasil</option>'+[...UFKEYS].sort((a,b)=>UFS[a][0].localeCompare(UFS[b][0])).map(k=>`<option value="${k}">${UFS[k][0]}</option>`).join('')+'<option value="zz">Exterior</option>';
+sel.onchange=()=>go({uf:sel.value,mun:null});
+$('bWorld').onclick=()=>go(S.uf==='zz'?{uf:'br',mun:null}:{uf:'zz',mun:null,cargo:'pres'});
+$('back').onclick=()=>S.mun?go({mun:null}):go({uf:'br',mun:null});
+const tip=$('tip');
+function showTip(e,h){tip.innerHTML=h;tip.style.opacity=1;const w=tip.offsetWidth,x=Math.min(e.clientX+16,innerWidth-w-12);tip.style.left=x+'px';tip.style.top=Math.min(e.clientY+14,innerHeight-tip.offsetHeight-12)+'px'}
+const hideTip=()=>tip.style.opacity=0;
+
+function go(p){
+  const pc0=S.cargo,pu0=S.uf;
+  Object.assign(S,p);
+  if(S.layer==='cand'&&p.layer===undefined&&((p.cargo!==undefined&&p.cargo!==pc0)||(p.uf!==undefined&&p.uf!==pu0))){S.cand=null;S.layer='lider'}
+  if(S.turn===2&&S.cargo!=='pres'&&S.cargo!=='gov')S.cargo='pres';
+  if(S.uf==='zz'){S.cargo='pres';if(S.layer==='pxg'||S.layer==='sim')S.layer='lider'}
+  if(S.turn===2&&(S.layer==='pxg'||S.layer==='sim'))S.layer='lider';
+  if(S.turn===1&&(S.layer==='desl'||S.layer==='abstvar'||S.layer==='virada'))S.layer='lider';
+  if(S.turn===2&&S.layer==='virada'&&S.cargo==='gov'&&govDone(S.uf))S.layer='lider';
+  if(S.turn===2&&S.layer==='abstvar'&&S.cargo==='gov'&&govDone(S.uf))S.layer='lider';
+  if(S.turn===2&&S.layer==='desl'&&S.cargo==='gov'&&govDone(S.uf))S.layer='lider';
+  if(S.layer==='cand'&&!S.cand)S.layer='lider';
+  if(S.layer==='decisivo'&&isProp(S.cargo))S.layer='lider';
+  if(S.uf==='br'&&isProp(S.cargo)&&S.layer!=='cand')S.layer='lider';
+  if(S.uf==='br'||MAJ.includes(S.cargo))S.mapCargo=S.cargo;
+  else if(p.cargo!==undefined||p.uf!==undefined||!(MAJ.includes(S.mapCargo)||S.mapCargo===S.cargo))S.mapCargo=defMap();
+  if(S.layer==='sim')S.mapCargo=simCg();
+  if(S.layer==='cand')S.mapCargo=S.cand.cg;
+  history.replaceState(null,'','#/'+S.uf+'/'+S.cargo+(S.mun?'/'+S.mun:'')+(S.layer!=='lider'&&S.layer!=='cand'?';l='+S.layer:'')+(S.turn===2?';t=2':''));
+  render();
+}
+function fromHash(){
+  const m=location.hash.match(/^#\/([a-z]{2})\/(pres|gov|sen|df|de)(?:\/(\d+))?/);
+  if(m){S.uf=m[1]==='br'||UFS[m[1]]?m[1]:'br';S.cargo=m[2];S.mun=m[3]||null;S.mapCargo=defMap();
+    const l=location.hash.match(/;l=(\w+)/);if(l&&LAYERS.some(x=>x[0]===l[1])&&l[1]!=='cand'&&l[1]!=='desl'&&l[1]!=='abstvar'&&l[1]!=='virada')S.layer=l[1];
+    S.wantT2=/;t=2/.test(location.hash)}
+}
+
+/* ===== render ===== */
+async function render(fresh){
+  if(S.turn===2&&!S.govT2)await (S.govT2P||loadGovT2()).catch(()=>{});
+  const tok=++S.tok;
+  document.querySelectorAll('.tabs button').forEach(b=>{b.classList.toggle('on',b.dataset.k===S.cargo);b.disabled=(S.turn===2&&!['pres','gov'].includes(b.dataset.k))||(S.uf==='zz'&&b.dataset.k!=='pres');if(b.dataset.k==='de')b.textContent=cargoNome('de',S.uf)});
+  const noLayers=S.uf==='br'&&isProp(S.cargo);
+  $('layers').style.display=noLayers?'none':'flex';
+  drawLayers();drawTurns();
+  const bs=document.querySelector('.brand small');if(bs)bs.textContent=S.turn===2?'2º turno · 25/10/2026':'1º turno · 04/10/2026';
+  sel.value=S.uf;markUFs();$('bWorld').classList.toggle('on',S.uf==='zz');
+  {const tt=S.turn===2?'2º turno':'1º turno';document.title='Apuração 2026 · '+tt;const md=document.querySelector('meta[name=description]');if(md)md.content='Painel de apuração 2026 ('+tt+'), com dados do TSE. Desenvolvido por Luciano Victor com apoio de IA (Claude, Anthropic).'}
+  const nomeUF=S.uf==='br'?'Brasil':UFS[S.uf][0];
+  $('mk').textContent=S.mun?`${nomeUF} · ${munNm(S.mun)}`:nomeUF;
+  $('mv').textContent=mapTitle();
+  $('back').style.display=S.uf==='br'?'none':'block';
+  $('back').textContent=S.mun?'← '+nomeUF:'← Brasil';
+  const sw=$('mapsw');
+  if(S.uf==='br'){sw.style.display='flex';sw.innerHTML=[['map','Mapa'],['hex','Hexágonos']].map(([k,n])=>`<button data-k="${k}" class="${(k==='hex')===S.hex?'on':''}">${n}</button>`).join('');sw.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.hex=b.dataset.k==='hex';render()})}
+  else if(isProp(S.cargo)&&!['pxg','sim','desl','cand','virada'].includes(S.layer)){sw.style.display='flex';sw.innerHTML=['gov',S.cargo].map(k=>{const heavy=isProp(k)&&!AUTO_PROP.includes(S.uf);return `<button data-k="${k}" class="${k===S.mapCargo?'on':''}" title="${isProp(k)?'Candidato mais votado em cada município'+(heavy?' (carrega um arquivo por município, pode levar alguns minutos)':''):''}">${isProp(k)?'Candidato mais votado':'Partido do '+cargoNome(k,S.uf).toLowerCase()}${heavy?' (pesado)':''}</button>`}).join('');sw.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.mapCargo=b.dataset.k;render()})}
+  else sw.style.display='none';
+  if(fresh!==true){$('layerBox').innerHTML='';S.simBuilt=false}
+  await Promise.allSettled([drawMap(tok,fresh),drawCards(tok,fresh)]);
+  renderTrend();
+}
+
+/* ===== mapa ===== */
+let curMap=null;const patIds=new Set();
+async function drawMap(tok,fresh){
+  const svg=$('map');
+  if(S.uf==='br'){
+    const items=S.hex?hexItems():await geoBR();if(tok!==S.tok)return;
+    const key=S.hex?'brhex':'br';
+    if(!curMap||curMap.scope!==key)buildPaths(svg,items,key);
+    await paintScope(tok,fresh);
+  }else{
+    const items=await geoUF(S.uf);if(tok!==S.tok)return;
+    await muniList(S.uf);if(tok!==S.tok)return;
+    if(!curMap||curMap.scope!==S.uf)buildPaths(svg,items,S.uf);
+    await paintScope(tok,fresh);
+  }
+}
+function buildPaths(svg,items,scope){
+  svg.classList.add('fade');
+  setTimeout(()=>{
+    patIds.clear();
+    svg.innerHTML='<defs id="defs"></defs>'+items.map(i=>`<path data-id="${i.id}" d="${i.d}" fill="#18213a"/>`).join('')+items.filter(i=>i.lab).map(i=>`<text class="hl ${i.cls||''}" x="${i.x.toFixed(1)}" y="${i.y.toFixed(1)}">${i.lab}</text>`).join('');
+    curMap={scope,nat:scope.startsWith('br'),ctr:{},paths:Object.fromEntries([...svg.querySelectorAll('path')].map(p=>[p.dataset.id,p]))};
+    items.forEach(i=>{if(i.lab)curMap.ctr[i.id]=[i.x,i.y]});
+    svg.querySelectorAll('path').forEach(p=>{
+      p.addEventListener('click',()=>{const id=p.dataset.id;if(scope.startsWith('br'))go({uf:id,mun:null});else{const c=munCd(id);go({mun:S.mun===c?null:c})}});
+      p.addEventListener('pointermove',e=>mapTip(e,p.dataset.id));
+      p.addEventListener('pointerleave',hideTip);
+    });
+    svg.classList.remove('fade');
+    repaint();
+  },scope.startsWith('br')||!svg.innerHTML?0:180);
+}
+const leaders={};
+function setLeader(key,d,cg,cand){
+  const e=eleit(d),v=votos(d);const base={sec:sec(d).p,abs:e.pa,nv:v.vb+v.vn,te:e.te,vv:v.vv};
+  if(isProp(cg)&&!cand){const ps=partidos(d);if(ps.length)leaders[key]={nm:ps[0].sg,sg:ps[0].sg,p:ps[0].p,v:ps[0].v,second:ps[1]?{nm:ps[1].sg,p:ps[1].p}:null,mg:ps[1]?ps[0].p-ps[1].p:100,mv:ps[1]?ps[0].v-ps[1].v:ps[0].v,party:true,...base};return}
+  const c=cands(d);if(!c.length)return;
+  const vagas=isProp(cg)?1:Math.max(1,N(d.carg?.[0]?.nv)),i=Math.min(vagas-1,c.length-1);
+  leaders[key]={...c[0],cand:isProp(cg),second:c[1],mg:c[i].p-(c[i+1]?c[i+1].p:0),mv:c[i].v-(c[i+1]?c[i+1].v:0),
+    all:(cg==='pres'||cg==='gov')?c.map(x=>({sq:x.sq,n:x.n,nm:x.nm,sg:x.sg,v:x.v,st:x.st})):null,...base};
+}
+/* ===== régua da camada Decisivo (v5.5) =====
+   2º turno e Senador: diferença entre quem leva a (última) vaga e o seguinte.
+   1º turno de Presidente e Governador: distância do líder até a metade dos votos válidos,
+   isto é, o que decide se haverá 2º turno (|2L - V|). */
+const effT=(cg,uf)=>S.turn===2&&cg==='gov'&&govDone(uf)?1:S.turn;
+const decRule=(cg,uf)=>(cg==='pres'||cg==='gov')&&effT(cg,uf)===1?'50':'mg';
+function decThr(l,cg,uf){if(!l)return 0;if(!l.party&&!l.cand&&decRule(cg,uf)==='50')return Math.abs(2*l.v-(l.vv||0));return l.mv}
+const decOff=(cg,uf)=>S.turn===2&&cg==='gov'&&S.uf==='br'&&govDone(uf);
+/* UFs que elegeram o governador no 1º turno ficam fora das camadas analíticas da visão nacional do 2º turno */
+const t1Off=uf=>decOff(S.mapCargo,uf);
+const offN=()=>S.turn===2&&S.mapCargo==='gov'&&S.uf==='br'&&S.govT2?UFKEYS.filter(u=>!S.govT2.has(u)).length:0;
+const NEUTRO='#121826';
+const mix=(hex,a)=>{const n=parseInt(hex.slice(1),16),r=n>>16,g=n>>8&255,b=n&255,bg=[24,33,58];return `rgb(${Math.round(bg[0]+(r-bg[0])*a)},${Math.round(bg[1]+(g-bg[1])*a)},${Math.round(bg[2]+(b-bg[2])*a)})`};
+const DARK='#18213a';
+function fillLider(l){
+  if(!l||!l.v)return DARK;
+  const a=l.party?clamp(.42+(l.p-8)/32*.58,.42,1):l.cand?clamp(.45+(l.p-5)/30*.55,.45,1):clamp(.38+(l.p-30)/45*.62,.38,1);
+  return mix(colorOf(l.sg),a);
+}
+const marginCol=pp=>pp<2?'#ffd166':pp<5?'#ff9f45':pp<10?'#e5643b':pp<20?'#9b3d5e':'#3b3a6b';
+function pat(c1,c2){
+  const id='p'+(c1+'_'+c2).replace(/[^a-z0-9_]/gi,'');
+  if(!patIds.has(id)){patIds.add(id);const d=$('defs');if(d)d.insertAdjacentHTML('beforeend',`<pattern id="${id}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3.5" height="7" fill="${c1}"/><rect x="3.5" width="3.5" height="7" fill="${c2}"/></pattern>`)}
+  return `url(#${id})`;
+}
+function fillUnit(uf,m){
+  const L=S.layer;
+  if(L==='pxg'){const a=leaders[K('pres',uf,m)],b=leaders[K('gov',uf,m)];if(!a||!b)return DARK;return a.sg===b.sg?colorOf(a.sg):pat(colorOf(a.sg),colorOf(b.sg))}
+  if(L==='sim'){const l=leaders[K(simCg(),uf,m)];if(!l||!l.all||!S.fin)return DARK;const r=simUnit(l);return simFill(r)}
+  if(L==='cand'){const sh=S.cand?candShare(uf,m):null;return sh==null?DARK:mix(colorOf(S.cand.sg),clamp(.14+sh/(S.candMax||1)*.86,.14,1))}
+  if(L==='bolhas')return t1Off(uf)?NEUTRO:'#1a2238';
+  if(L==='abstvar'){const r=abstVar(uf,m);if(r==null)return DARK;return r>=0?mix('#ff9f45',clamp(.2+r/6*.8,.2,1)):mix('#7cf2c8',clamp(.2+(-r)/6*.8,.2,1))}
+  if(L==='virada'){const v=viradaVal(uf,m);if(!v)return DARK;const c=colorOf(v.sg2);return v.flip?pat(c,mix(c,.3)):mix(c,.24)}
+  if(L==='desl'){const r=deslVal(uf,m);if(!r)return DARK;return mix(colorOf(r.d>=0?r.sgA:r.sgB),clamp(.28+Math.abs(r.d)/8*.72,.28,1))}
+  const l=leaders[K(S.mapCargo,uf,m)];if(!l||!l.v)return DARK;
+  if(L!=='lider'&&t1Off(uf))return NEUTRO;
+  if(L==='margem')return marginCol(l.mg);
+  if(L==='decisivo'){if(decOff(S.mapCargo,uf))return NEUTRO;const r=l.nv/Math.max(1,decThr(l,S.mapCargo,uf));return r>1?mix('#ff9f45',clamp(.5+Math.log10(r)*.5,.5,1)):'#1d2742'}
+  if(L==='abst')return mix('#7cf2c8',clamp((l.abs-10)/22,.12,1));
+  return fillLider(l);
+}
+const t2Outline=()=>!!(S.turn===2&&S.mapCargo==='gov'&&S.uf==='br'&&S.govT2&&['lider','margem','decisivo','abst','bolhas'].includes(S.layer));
+function repaint(){
+  if(!curMap)return;
+  if(S.layer==='cand'&&S.cand){let mx=0;for(const u of candUnits())mx=Math.max(mx,u.sh);S.candMax=mx||1}
+  if(curMap.nat){const o=t2Outline();for(const uf of UFKEYS){const p=curMap.paths[uf];if(p){p.style.fill=fillUnit(uf,null);p.classList.toggle('t2u',o&&!govDone(uf))}}}
+  else for(const m of S.munList[S.uf]||[]){const p=curMap.paths[m.cdi];if(p){p.style.fill=fillUnit(S.uf,m.cd);p.classList.toggle('sel',m.cd===S.mun)}}
+  legend();layerSoon();drawArrows();drawBubbles();
+}
+function units(cg,all){
+  const ok=u=>u.l&&(all||u.l.v>0)&&(all||S.layer==='lider'||!t1Off(u.uf));
+  if(S.uf==='br')return UFKEYS.map(uf=>({id:uf,nome:UFS[uf][0],uf,l:leaders[K(cg,uf)]})).filter(ok);
+  return (S.munList[S.uf]||[]).map(m=>({id:m.cd,nome:m.nm,uf:S.uf,l:leaders[K(cg,S.uf,m.cd)]})).filter(ok);
+}
+const totalUnits=()=>S.uf==='br'?27:(S.munList[S.uf]||[]).length;
+const unitWord=()=>S.uf==='br'?'UFs':S.uf==='zz'?'cidades':'municípios';
+const swt=(c,t,n)=>`<span><i style="background:${c}"></i>${t}${n!==undefined?` <span class="num" style="color:var(--tx3)">${n}</span>`:''}</span>`;
+function legend(){
+  const L=S.layer;let h='';
+  if(L==='lider'){const seen=new Map();let n0=0,nz=0;for(const u of units(S.mapCargo,true)){if(!u.l.v){u.l.sec>=99.995?nz++:n0++;continue}seen.set(u.l.sg,(seen.get(u.l.sg)||0)+1)}
+    h=[...seen].sort((a,b)=>b[1]-a[1]).map(([sg,n])=>swt(colorOf(sg),esc(sg),n)).join('');
+    if(n0)h+=`<span><i style="background:${DARK};box-shadow:inset 0 0 0 1px #4a5878"></i>${S.turn===2?'2º turno · aguardando apuração':'aguardando apuração'} <span class="num" style="color:var(--tx3)">${n0}</span></span>`;
+    if(nz)h+=`<span><i style="background:${DARK}"></i>sem votos registrados <span class="num" style="color:var(--tx3)">${nz}</span></span>`}
+  else if(L==='margem'){const bins=[[2,'<2 p.p.'],[5,'2-5'],[10,'5-10'],[20,'10-20'],[1e9,'>20']];const cnt=bins.map(()=>0);
+    for(const u of units(S.mapCargo)){const i=bins.findIndex(b=>u.l.mg<b[0]);cnt[i]++}
+    h=bins.map((b,i)=>swt(marginCol(b[0]===1e9?99:b[0]-.01),b[1],cnt[i])).join('')}
+  else if(L==='decisivo'){const all=units(S.mapCargo),u=all.filter(x=>!decOff(S.mapCargo,x.uf)),off=all.length-u.length,r50=u.length&&decRule(S.mapCargo,u[0].uf)==='50';
+    const n=u.filter(x=>x.l.nv>decThr(x.l,S.mapCargo,x.uf)).length;
+    h=swt('#ff9f45',r50?'brancos+nulos > distância até 50%':'brancos+nulos > margem',n)+swt('#1d2742',r50?'distância maior':'margem maior',u.length-n)}
+  else if(L==='abst')h=`<span>menor</span><i class="grad"></i><span>maior abstenção</span>`;
+  else if(L==='pxg'){let eq=0,df=0;const a=units('pres');for(const u of a){const g=leaders[K('gov',u.uf,S.uf==='br'?null:u.id)];if(!g)continue;u.l.sg===g.sg?eq++:df++}
+    h=swt('#7a89a8','cor sólida: mesmo partido',eq)+`<span><i style="background:repeating-linear-gradient(45deg,#4f8cff 0 3px,#ff4d5e 3px 6px)"></i>listrado: partidos diferentes <span class="num" style="color:var(--tx3)">${df}</span></span>`}
+  else if(L==='sim'&&S.fin){let a=0,b=0;for(const u of units(simCg())){if(!u.l.all)continue;const r=simUnit(u.l);r.a>=r.b?a++:b++}
+    h=swt(colorOf(S.fin[0].sg),esc(S.fin[0].nm),a)+swt(colorOf(S.fin[1].sg),esc(S.fin[1].nm),b)}
+  if(L==='cand'&&S.cand)h=`<span>0%</span><i class="grad" style="background:linear-gradient(90deg,#18213a,${colorOf(S.cand.sg)})"></i><span>${pc(S.candMax||0,1)} (máximo)</span>`;
+  else if(L==='desl')h=deslLegend();
+  else if(L==='virada'&&S.fin){const U=viradaUnits(),[A,B]=S.fin,n=sg=>U.filter(u=>u.v.flip&&u.v.sg2===sg).length,hz=c=>`<i style="background:repeating-linear-gradient(45deg,${c} 0 3px,${mix(c,.3)} 3px 6px)"></i>`;
+    h=`<span>${hz(colorOf(A.sg))}virada para ${esc(A.nm.split(' ')[0])} <span class="num" style="color:var(--tx3)">${n(A.sg)}</span></span><span>${hz(colorOf(B.sg))}virada para ${esc(B.nm.split(' ')[0])} <span class="num" style="color:var(--tx3)">${n(B.sg)}</span></span>`+swt(mix('#9aa8c4',.4),'sem virada (cor do líder, apagada)',U.filter(u=>!u.v.flip).length)}
+  else if(L==='bolhas'){const seen=new Map();for(const u of units(S.mapCargo))seen.set(u.l.sg,(seen.get(u.l.sg)||0)+u.l.mv);
+    h=[...seen].sort((a,b)=>b[1]-a[1]).slice(0,6).map(([sg,v])=>swt(colorOf(sg),esc(sg),fmt(v))).join('')}
+  else if(L==='abstvar')h=`<span>caiu</span><i class="grad" style="background:linear-gradient(90deg,#7cf2c8,#1d2742,#ff9f45)"></i><span>subiu</span>`;
+  if(L!=='lider'&&offN())h+=swt(NEUTRO,'definido no 1º turno (fora desta camada)',offN()).replace('<i style="','<i style="box-shadow:inset 0 0 0 1px #2a3652;');
+  if(t2Outline())h+=`<span><i style="background:transparent;box-shadow:inset 0 0 0 2px #f5b942"></i>contorno: UF com 2º turno <span class="num" style="color:var(--tx3)">${S.govT2.size}</span></span>`;
+  const un=S.uf==='br'?'UF':S.uf==='zz'?'cidade':'município';
+  const CAP={lider:S.uf==='br'&&isProp(S.cargo)?'Cor: partido mais votado em cada UF. Número: UFs em que lidera.':'Cor: partido de quem lidera em cada '+un+'. Número: '+(un==='cidade'?'quantas ':'quantos ')+un+'s cada partido lidera.',
+   margem:'Diferença em pontos percentuais entre o 1º e o 2º colocado. Número: '+(un==='cidade'?'quantas ':'quantos ')+un+'s em cada faixa.',
+   decisivo:decRule(S.mapCargo,S.uf==='br'?null:S.uf)==='50'?'Laranja: brancos e nulos superam a distância do líder até a metade dos votos válidos, ou seja, poderiam ter mudado a existência de 2º turno.':(S.mapCargo==='sen'?'Laranja: brancos e nulos superam a diferença entre o último eleito e o primeiro não eleito.':'Laranja: brancos e nulos somam mais votos do que a diferença entre os dois finalistas.'),
+   abst:'Percentual de eleitores que não compareceram. Quanto mais claro, maior a abstenção.',
+   pxg:'Compara o partido que lidera para Presidente com o que lidera para Governador.',
+   sim:'Simulação do 2º turno com as transferências de votos que você ajustou. Cor: finalista à frente.',
+   cand:'Intensidade: percentual de votos do candidato em cada '+un+'. Máximo: maior percentual obtido.',
+   bolhas:'Tamanho do círculo: vantagem do líder em votos. Número: soma das vantagens de cada partido. Corrige a distorção de área do mapa.',
+   abstvar:'Variação da abstenção, em pontos percentuais, do 1º para o 2º turno, considerando as seções já apuradas.',
+   virada:'Compara quem estava à frente entre os dois finalistas no 1º turno com quem está à frente no 2º. Durante a apuração, uma virada pode se desfazer.',
+   desl:'Variação entre o 1º e o 2º turno na disputa entre os finalistas. Cor: quem ganhou terreno.'}[L]||'';
+  $('legend').innerHTML=h+(CAP?'<div class="lcap">'+CAP+'</div>':'');
+}
+function progress(label,done,total){const pr=$('prog'),mp=$('mkp');pr.style.display='block';$('progtx').textContent=`${label} ${done}/${total}`;$('progbar').style.width=(done/total*100)+'%';if(mp)mp.textContent=done<total?`  ·  ${label.toLowerCase()} ${done}/${total}`:'';if(done>=total)setTimeout(()=>{pr.style.display='none';if(mp)mp.textContent=''},350)}
+async function paintScope(tok,fresh){
+  const cgs=need();if(S.layer==='sim'||S.layer==='desl'||S.layer==='virada')await ensureFin(S.layer==='sim'?simCg():S.mapCargo);
+  const nat=S.uf==='br';
+  const items=nat?UFKEYS:(S.munList[S.uf]||[]);
+  const turns=(S.layer==='desl'||S.layer==='abstvar'||S.layer==='virada')?[S.turn,1]:[S.turn];
+  const total=items.length*cgs.length*turns.length;let done=0,pend=0;
+  const lab=nat?'Lendo UFs':'Lendo municípios';
+  progress(lab,0,total);repaint();
+  for(const t of turns)for(const cg of cgs){
+    await pool(items,nat?(isProp(cg)?8:14):(isProp(cg)?8:28),async it=>{
+      const d=nat?await getUF(it,cg,fresh&&t===S.turn,t):await getMun(S.uf,it.cd,cg,fresh&&t===S.turn,t);
+      setLeader(nat?K(cg,it,null,t):K(cg,S.uf,it.cd,t),d,cg,!nat);done++;
+      if(tok===S.tok&&(++pend%(nat?1:25)===0||done===total)){progress(lab,done,total);repaint()}
+    });
+  }
+  if(tok===S.tok){progress(lab,total,total);repaint()}
+}
+async function ensureFin(cg){
+  cg=cg||simCg();
+  const key=S.turn+'/'+cg+'/'+(cg==='pres'?'br':S.uf);
+  if(S.finKey===key)return S.finP;
+  S.finKey=key;S.tr={};S.fin=null;S.elim=[];
+  S.finP=(async()=>{
+    if(cg==='gov'&&S.uf==='br')return;
+    const d=cg==='pres'?await getJ(brpres()):await getUF(S.uf,'gov');const c=cands(d);
+    const m=x=>({sq:x.sq,n:x.n,nm:x.nm,sg:x.sg,v:x.v,p:x.p});
+    S.fin=[c[0],c[1]].map(m);S.elim=c.slice(2,7).map(m);
+    for(const x of S.elim)S.tr[x.sq]=[0,0];S.tr.outros=[0,0];
+  })();
+  return S.finP;
+}
+async function ensureUFs(cg){await pool(UFKEYS,14,async uf=>{if(!leaders[K(cg,uf)])setLeader(K(cg,uf),await getUF(uf,cg),cg)})}
+
+/* ===== simulador ===== */
+function simUnit(l){
+  const [A,B]=S.fin;let a=0,b=0;const keep=new Set(S.elim.map(x=>x.sq));
+  for(const c of l.all){
+    if(c.sq===A.sq)a+=c.v;else if(c.sq===B.sq)b+=c.v;
+    else{const t=S.tr[keep.has(c.sq)?c.sq:'outros']||[0,0];a+=c.v*t[0]/100;b+=c.v*t[1]/100}
+  }
+  return{a,b};
+}
+function simFill(r){
+  const tot=r.a+r.b||1,diff=Math.abs(r.a-r.b)/tot*100;
+  return mix(colorOf((r.a>=r.b?S.fin[0]:S.fin[1]).sg),clamp(.42+diff/30*.58,.42,1));
+}
+function simNational(){
+  let a=0,b=0,ufA=0,ufB=0,n=0;
+  for(const u of units(simCg())){if(!u.l.all)continue;const r=simUnit(u.l);a+=r.a;b+=r.b;n++;r.a>=r.b?ufA++:ufB++}
+  return{a,b,ufA,ufB,n};
+}
+function simOut(){
+  const o=$('simout');if(!o||!S.fin)return;
+  const [A,B]=S.fin,r=simNational(),t=r.a+r.b||1;
+  const bar=`<div class="bar" style="height:12px;margin:10px 0"><i style="width:${r.a/t*100}%;background:${colorOf(A.sg)}"></i><i style="width:${r.b/t*100}%;background:${colorOf(B.sg)}"></i></div>`;
+  const nat=S.uf==='br',tot=totalUnits();
+  const local=nat?'':`<div class="sm mut" style="margin-top:8px">Cenário para Governador de ${esc(UFS[S.uf][0])}, a partir dos votos municipais.</div>`;
+  o.innerHTML=`<div class="row"><div><div class="big" style="font-size:26px;color:${colorOf(A.sg)}">${pc(r.a/t*100)}</div><div class="sm mut">${esc(A.nm)}</div></div><div style="text-align:right"><div class="big" style="font-size:26px;color:${colorOf(B.sg)}">${pc(r.b/t*100)}</div><div class="sm mut">${esc(B.nm)}</div></div></div>${bar}
+  <div class="row sm"><span class="mut">Projeção de votos válidos</span><b class="num">${fmt(r.a)} × ${fmt(r.b)}</b></div>
+  <div class="row sm" style="margin-top:6px"><span class="mut">Diferença</span><b class="num">${fmt(Math.abs(r.a-r.b))} · ${(Math.abs(r.a-r.b)/t*100).toFixed(2).replace('.',',')} p.p. a favor de ${esc((r.a>=r.b?A:B).nm)}</b></div>
+  <div class="row sm" style="margin-top:6px"><span class="mut">${nat?'UFs vencidas':'Municípios vencidos'}</span><b class="num">${r.ufA} × ${r.ufB}${r.n<tot?` (lendo ${r.n}/${tot})`:''}</b></div>${local}`;
+}
+function simBuild(){
+  const box=$('layerBox');if(!S.fin)return;
+  const [A,B]=S.fin;
+  const rows=[...S.elim,{sq:'outros',nm:'Demais candidatos',sg:'—'}].map(x=>{const t=S.tr[x.sq]||[0,0];return `<div class="simrow"><div class="row sm"><b>${esc(x.nm)}</b><span class="mut">${x.p!==undefined?pc(x.p):''}</span></div>
+   <label class="sl"><span style="color:${colorOf(A.sg)}">→ ${esc(A.nm.split(' ')[0])}</span><input type="range" min="0" max="100" value="${t[0]}" data-k="${x.sq}" data-i="0" style="accent-color:${colorOf(A.sg)}"><b class="num" id="v0${x.sq}">${t[0]}%</b></label>
+   <label class="sl"><span style="color:${colorOf(B.sg)}">→ ${esc(B.nm.split(' ')[0])}</span><input type="range" min="0" max="100" value="${t[1]}" data-k="${x.sq}" data-i="1" style="accent-color:${colorOf(B.sg)}"><b class="num" id="v1${x.sq}">${t[1]}%</b></label></div>`}).join('');
+  box.innerHTML=`<div class="card" id="simcard"><h3><span>Simulador de 2º turno</span><span>transferência de votos</span></h3>
+   <div id="simout"></div>
+   <div class="presets"><button data-p="zero">Zerar</button><button data-p="prop">Proporcional</button><button data-p="a">Tudo ${esc(A.nm.split(' ')[0])}</button><button data-p="b">Tudo ${esc(B.nm.split(' ')[0])}</button></div>
+   <div class="simrows">${rows}</div>
+   <p class="sm mut" style="margin-top:12px;line-height:1.45">Cada eliminado repassa a parcela indicada dos votos válidos que teve no 1º turno; o restante vira abstenção, branco ou nulo. Os votos dos finalistas se mantêm. É um cenário, não uma previsão.</p></div>`;
+  box.querySelectorAll('input[type=range]').forEach(inp=>inp.oninput=()=>{
+    const k=inp.dataset.k,i=+inp.dataset.i,t=S.tr[k]=S.tr[k]||[0,0];t[i]=+inp.value;
+    const o=1-i;if(t[0]+t[1]>100)t[o]=100-t[i];
+    for(const j of [0,1]){$('v'+j+k).textContent=t[j]+'%';box.querySelector(`input[data-k="${k}"][data-i="${j}"]`).value=t[j]}
+    repaint();simOut();
+  });
+  box.querySelectorAll('.presets button').forEach(b=>b.onclick=()=>{
+    const p=b.dataset.p,tot=A.v+B.v||1;
+    for(const k of Object.keys(S.tr))S.tr[k]=p==='zero'?[0,0]:p==='a'?[100,0]:p==='b'?[0,100]:[Math.round(A.v/tot*100),100-Math.round(A.v/tot*100)];
+    simBuild();repaint();
+  });
+  simOut();
+}
+
+/* ===== camada: caixa analítica ===== */
+let layerT=null;const layerSoon=()=>{clearTimeout(layerT);layerT=setTimeout(layerBox,160)};
+function listRows(rows,fn){return `<div class="rk">${rows.map(fn).join('')}</div>`}
+const rowU=(nome,val,sub)=>`<div class="it"><span class="pos"></span><span class="nm">${esc(nome)}</span><span class="pc">${val}</span><div class="vt">${sub}</div></div>`;
+async function layerBox(){
+  const L=S.layer,box=$('layerBox');
+  if(L==='lider'&&S.uf==='br'&&S.cargo==='pres'){await projBox(box);return}
+  if(L==='cand'){candBox(box);return}
+  if(L==='desl'){deslBox(box);return}
+  if(L==='virada'){viradaBox(box);return}
+  if(L==='bolhas'){bolhasBox(box);return}
+  if(L==='abstvar'){abstVarBox(box);return}
+  if(L==='lider'||(S.uf==='br'&&isProp(S.cargo))){box.innerHTML='';return}
+  if(L==='sim'){
+    await ensureFin();
+    if(!S.simBuilt||!$('simcard')){S.simBuilt=true;simBuild()}
+    simOut();if(S.uf==='br')ensureUFs('pres').then(simOut);
+    return;
+  }
+  const M=totalUnits()-offN(),w=unitWord();
+  if(L==='pxg'){
+    const a=units('pres');let eq=0,df=0;const pairs={};
+    for(const u of a){const g=leaders[K('gov',u.uf,S.uf==='br'?null:u.id)];if(!g)continue;if(u.l.sg===g.sg)eq++;else df++;const k=u.l.sg+' → '+g.sg;pairs[k]=(pairs[k]||0)+1}
+    const top=Object.entries(pairs).sort((x,y)=>y[1]-x[1]).slice(0,8),tot=eq+df||1;
+    box.innerHTML=`<div class="card"><h3><span>Presidente × Governador</span><span>${w}</span></h3>
+     <div class="big">${pc(df/tot*100,1)}</div><div class="mut sm" style="margin-top:6px">${S.uf==='br'||S.uf==='zz'?'das':'dos'} ${w} têm líderes de partidos diferentes nos dois cargos (${df} de ${tot})</div>
+     <div style="margin-top:14px">${listRows(top,([k,n])=>`<div class="it"><span class="pos"></span><span class="nm">${esc(k)}</span><span class="pc">${n}</span><div class="b"><div class="bar"><i style="width:${n/top[0][1]*100}%;background:var(--acc)"></i></div></div></div>`)}</div>
+     <p class="sm mut" style="margin-top:10px">Listrado no mapa: partido líder para Presidente → partido líder para Governador.</p></div>`;
+    return;
+  }
+  const U=units(S.mapCargo),cn=cargoNome(S.mapCargo,S.uf);
+  if(!U.length){box.innerHTML='';return}
+  if(L==='margem'){
+    const R=[...U].sort((x,y)=>x.l.mg-y.l.mg),tight=R.filter(r=>r.l.mg<5).length;
+    box.innerHTML=`<div class="card"><h3><span>Disputas apertadas · ${cn}</span><span>${U.length}/${M}</span></h3>
+     <div class="big">${tight}</div><div class="mut sm" style="margin-top:6px">${w} ${S.uf==='br'||S.uf==='zz'?'decididas':'decididos'} por menos de 5 p.p.${S.mapCargo==='sen'?' (para a última vaga)':''}</div>
+     <div style="margin-top:14px">${listRows(R.slice(0,6),r=>rowU(r.nome,r.l.mg.toFixed(2).replace('.',',')+' p.p.',`${fmt(r.l.mv)} votos · ${esc(r.l.nm)} (${esc(r.l.sg)})`))}</div></div>`;
+  }else if(L==='decisivo'){
+    const UU=U,r50=UU.length&&decRule(S.mapCargo,UU[0].uf)==='50',lbl=r50?'distância até 50%':'margem';
+    const R=UU.map(u=>({...u,t:decThr(u.l,S.mapCargo,u.uf)})).filter(u=>u.l.nv>u.t).map(u=>({...u,r:u.l.nv/Math.max(1,u.t)})).sort((x,y)=>y.r-x.r);
+    let nat='';
+    if(S.uf==='br'&&S.mapCargo==='pres'){const d=cache.get(brpres())?.d;if(d){const cs=cands(d),v=votos(d),nv=v.vb+v.vn;if(cs.length>1&&cs[0].v>0){const t=decRule('pres',null)==='50'?Math.abs(2*cs[0].v-v.vv):cs[0].v-cs[1].v,sup=nv>t;
+      nat=`<div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--line)"><div class="sm mut" style="margin-bottom:6px">Brasil, o número que decide</div><div class="row sm"><span>Brancos e nulos</span><b class="num">${fmt(nv)}</b></div><div class="row sm" style="margin-top:4px"><span>${r50?'Distância do líder até 50% dos válidos':'Diferença entre os finalistas'}</span><b class="num">${fmt(t)}</b></div><div class="sm" style="margin-top:8px;color:${sup?'var(--warn)':'var(--tx2)'}">${sup?(r50?'Brancos e nulos poderiam ter mudado a existência de 2º turno.':'Brancos e nulos superam a diferença entre os finalistas.'):(r50?'Brancos e nulos não alcançam a distância até 50%.':'A diferença entre os finalistas é maior que brancos e nulos.')} O mapa por UF é detalhamento: a eleição é decidida no total nacional.</div></div>`}}}
+    const off=offN();
+    box.innerHTML=`<div class="card"><h3><span>Brancos + nulos × ${lbl} · ${cn}</span><span>${UU.length}/${M}</span></h3>${nat}
+     <div class="big">${R.length}</div><div class="mut sm" style="margin-top:6px">${w} em que brancos e nulos somados superam ${r50?'a distância do líder até a metade dos votos válidos':'a '+lbl+' da vitória'}${off?` · ${off} ${w} definidas no 1º turno ficam fora`:''}</div>
+     <div style="margin-top:14px">${listRows(R.slice(0,6),r=>rowU(r.nome,r.r.toFixed(1).replace('.',',')+'×',`${fmt(r.l.nv)} brancos+nulos · ${lbl} de ${fmt(r.t)} votos`))}</div></div>`;
+  }else if(L==='abst'){
+    const te=U.reduce((s,u)=>s+u.l.te,0)||1,m=U.reduce((s,u)=>s+u.l.abs*u.l.te,0)/te,R=[...U].sort((x,y)=>y.l.abs-x.l.abs);
+    box.innerHTML=`<div class="card"><h3><span>Abstenção</span><span>${U.length}/${M}</span></h3>
+     <div class="big">${pc(m,2)}</div><div class="mut sm" style="margin-top:6px">média ponderada pelo eleitorado</div>
+     <div style="margin-top:14px"><div class="sm mut" style="margin-bottom:6px">Maiores</div>${listRows(R.slice(0,4),r=>rowU(r.nome,pc(r.l.abs,1),`${fmt(r.l.te)} eleitores`))}</div>
+     <div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Menores</div>${listRows(R.slice(-4).reverse(),r=>rowU(r.nome,pc(r.l.abs,1),`${fmt(r.l.te)} eleitores`))}</div></div>`;
+  }
+}
+
+/* ===== tooltip ===== */
+function mapTip(e,id){
+  let nome,uf,m;
+  if(curMap.nat){nome=UFS[id][0];uf=id;m=null}
+  else{const mm=(S.munList[S.uf]||[]).find(x=>x.cdi===id);nome=mm?mm.nm:id;uf=S.uf;m=mm?mm.cd:null}
+  const L=S.layer;let body='';
+  const dot=c=>`<i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${c};margin-right:6px"></i>`;
+  if(L==='pxg'){const a=leaders[K('pres',uf,m)],b=leaders[K('gov',uf,m)];
+    body=a&&b?`<div class="row"><span>${dot(colorOf(a.sg))}Pres: ${esc(a.nm)}</span><b class="num">${pc(a.p,1)}</b></div><div class="row"><span>${dot(colorOf(b.sg))}Gov: ${esc(b.nm)}</span><b class="num">${pc(b.p,1)}</b></div>`:'<span class="mut">carregando…</span>'}
+  else if(L==='sim'){const l=leaders[K(simCg(),uf,m)];
+    if(l&&l.all&&S.fin){const r=simUnit(l),t=r.a+r.b||1;body=`<div class="row"><span>${dot(colorOf(S.fin[0].sg))}${esc(S.fin[0].nm)}</span><b class="num">${pc(r.a/t*100,1)}</b></div><div class="row"><span>${dot(colorOf(S.fin[1].sg))}${esc(S.fin[1].nm)}</span><b class="num">${pc(r.b/t*100,1)}</b></div>`}else body='<span class="mut">carregando…</span>'}
+  else if(L==='cand'&&S.cand){const sh=candShare(uf,m),v=candVotes(uf,m);body=sh==null?'<span class="mut">carregando…</span>':`<div class="row"><span>${dot(colorOf(S.cand.sg))}${esc(S.cand.nm)}</span><b class="num">${pc(sh)}</b></div><div class="mut" style="margin-top:6px">${fmt(v)} votos</div>`}
+  else if(L==='abstvar'){const a=leaders[K(S.mapCargo,uf,m,1)],b=leaders[K(S.mapCargo,uf,m,2)];body=!a||!b?'<span class="mut">sem dados dos dois turnos</span>':`<div class="row"><span>1º turno</span><b class="num">${pc(a.abs,1)}</b></div><div class="row"><span>2º turno</span><b class="num">${pc(b.abs,1)}</b></div><div class="mut" style="margin-top:6px">variação ${b.abs-a.abs>=0?'+':''}${(b.abs-a.abs).toFixed(2).replace('.',',')} p.p.</div>`}
+  else if(L==='bolhas'){const l=leaders[K(S.mapCargo,uf,m)];body=!l?'<span class="mut">carregando…</span>':`<div class="row"><span>${dot(colorOf(l.sg))}${esc(l.nm)}</span><b class="num">${pc(l.p)}</b></div><div class="mut" style="margin-top:6px">Vantagem: ${fmt(l.mv)} votos${l.second?' sobre '+esc(l.second.nm):''}</div>`}
+  else if(L==='virada'){const v=viradaVal(uf,m);body=!v?'<span class="mut">sem dados dos dois turnos</span>':`<div class="row"><span>1º turno</span><b class="num">${esc(v.nm1.split(' ')[0])} · ${pc(v.s1,1)}</b></div><div class="row"><span>2º turno</span><b class="num">${esc(v.nm2.split(' ')[0])} · ${pc(v.s2,1)}</b></div><div class="mut" style="margin-top:6px">${v.flip?'<b style="color:var(--warn)">Virada</b> para '+esc(v.nm2):'Sem virada'}</div>`}
+  else if(L==='desl'){const r=deslVal(uf,m);body=!r?'<span class="mut">sem dados do 2º turno</span>':`<div class="row"><span>${dot(colorOf(r.sgA))}${esc(r.nmA)}</span><b class="num">${pc(r.s2,1)}</b></div><div class="mut" style="margin-top:6px">1º turno: ${pc(r.s1,1)} · variação ${r.d>=0?'+':''}${r.d.toFixed(2).replace('.',',')} p.p.</div>`}
+  else{const l=leaders[K(S.mapCargo,uf,m)];
+    if(!l)body='<span class="mut">carregando…</span>';
+    else if(!l.v)body=l.sec>=99.995?`<div class="mut">Apuração concluída sem votos registrados (${fmt(l.te)} eleitores aptos)</div>`:`<div class="mut">${S.turn===2?'2º turno · ':''}aguardando apuração</div>`;
+    else{const s=l.second;
+      body=`<div class="row"><span>${dot(colorOf(l.sg))}${esc(l.nm)}</span><b class="num">${pc(l.p)}</b></div>${s?`<div class="row mut"><span>${esc(s.nm)}</span><span class="num">${pc(s.p)}</span></div>`:''}`;
+      if(L==='margem')body+=`<div class="mut" style="margin-top:6px">Margem: ${l.mg.toFixed(2).replace('.',',')} p.p. · ${fmt(l.mv)} votos</div>`;
+      else if(L==='decisivo')body+=decOff(S.mapCargo,uf)?`<div class="mut" style="margin-top:6px">Definido no 1º turno; fora desta comparação</div>`:`<div class="mut" style="margin-top:6px">Brancos+nulos: ${fmt(l.nv)} · ${decRule(S.mapCargo,uf)==='50'?'distância até 50%':'margem'}: ${fmt(decThr(l,S.mapCargo,uf))}</div>`;
+      else if(L==='abst')body+=`<div class="mut" style="margin-top:6px">Abstenção: ${pc(l.abs,1)}</div>`;
+      else body+=`<div class="mut" style="margin-top:6px">Apurado: ${pc(l.sec,2)}</div>`}}
+  showTip(e,`<b>${esc(nome)}</b>${body}`);
+}
+
+/* ===== cards ===== */
+const skel=n=>Array.from({length:n},()=>`<div class="card"><div class="sk" style="width:40%;margin-bottom:14px"></div><div class="sk" style="height:34px;width:70%"></div></div>`).join('');
+async function drawCards(tok,fresh){
+  const L=$('colL'),R=$('mainBox');
+  if(!L.innerHTML||fresh!==true){L.innerHTML=skel(3);R.innerHTML=skel(3)}
+  try{
+    if(S.uf==='br'&&S.cargo!=='pres')return await cardsNational(tok,fresh);
+    const d=S.uf==='br'?await getJ(brpres(),fresh):(S.mun?await getMun(S.uf,S.mun,S.cargo,fresh):await getUF(S.uf,S.cargo,fresh));
+    if(tok!==S.tok)return;
+    cardsFor(d);
+    if(S.uf==='br'&&S.cargo==='pres')extCard(tok,fresh);
+  }catch(e){
+    if(tok!==S.tok)return;
+    $('dot').classList.add('err');
+    /* atualização periódica: mantém os últimos números válidos na tela e só sinaliza a falha */
+    if(fresh===true&&L.querySelector('.card')&&!L.querySelector('.sk')&&!L.querySelector('.card.err')){$('stamp').title='A última leitura do TSE falhou; nova tentativa em até 45 segundos. Os números exibidos são da leitura anterior.';return}
+    const code=/^\d{3}$/.test(e.message)?' (código '+e.message+')':'';
+    L.innerHTML=`<div class="card err">${S.turn===2&&e.message==='404'?'Sem 2º turno nesta disputa, ou dados ainda não publicados.':'Não foi possível ler o TSE agora'+code+'. Nova tentativa automática em até 45 segundos.'}</div>`;R.innerHTML=''}
+}
+const stTxt=x=>isEl(x.st)?'<span class="pill ok">Eleito</span>':/2º/.test(x.st)?'<span class="pill t2">2º turno</span>':'';
+const bar=(p,max,sg)=>`<div class="bar"><i style="width:${p/max*100}%;background:${colorOf(sg)}"></i></div>`;
+function leftCards(title,scope,s,e,v){
+  return `
+  <div class="card"><h3><span>${esc(title)}</span><span>${esc(scope)}</span></h3>
+    <div class="row"><div><div class="big">${pc(s.p)}</div><div class="mut sm" style="margin-top:6px">das seções totalizadas</div><div class="num sm" style="margin-top:4px">${fmt(s.st)} / ${fmt(s.ts)}</div></div>
+    <div class="ring" style="--p:${s.p}"><span>${Math.round(s.p)}%</span></div></div></div>
+  <div class="card"><h3><span>Comparecimento</span><span class="num">${fmt(e.te)} eleitores</span></h3>
+    <div class="bar" style="margin-bottom:12px"><i style="width:${e.pc}%;background:var(--acc)"></i><i style="width:${e.pa}%;background:#3a4560"></i></div>
+    <div class="kv"><div class="l"><span>Comparecimento</span><b class="num">${fmt(e.c)} · ${pc(e.pc)}</b></div><div class="l"><span>Abstenção</span><b class="num">${fmt(e.a)} · ${pc(e.pa)}</b></div></div></div>
+  <div class="card"><h3><span>Composição dos votos</span><span class="num">${fmt(v.tv)}</span></h3>
+    <div class="bar" style="margin-bottom:12px"><i style="width:${v.vv/(v.tv||1)*100}%;background:#4f8cff"></i><i style="width:${v.vb/(v.tv||1)*100}%;background:#cbd5e8"></i><i style="width:${v.vn/(v.tv||1)*100}%;background:#ff5d6c"></i></div>
+    <div class="kv">
+     <div class="l"><span>Válidos</span><b class="num">${fmt(v.vv)} · ${pc(v.vv/(v.tv||1)*100)}</b></div>
+     <div class="l"><span>Brancos</span><b class="num">${fmt(v.vb)} · ${pc(v.vb/(v.tv||1)*100)}</b></div>
+     <div class="l"><span>Nulos</span><b class="num">${fmt(v.vn)} · ${pc(v.vn/(v.tv||1)*100)}</b></div></div></div>`;
+}
+const partyList=(title,ps,fmtv,sub)=>{const mp=Math.max(...ps.map(x=>x.p),1);return `<div class="card"><h3><span>${title}</span><span>${sub||''}</span></h3><div class="rk">${ps.map(x=>`<div class="it"><span class="pos"></span><span class="nm">${esc(x.sg)}</span><span class="pc">${fmtv(x)}</span><div class="b">${bar(x.p,mp,x.sg)}</div></div>`).join('')}</div></div>`};
+function effCard(pv,seats,vagas){
+  const tot=Object.values(pv).reduce((a,b)=>a+b,0)||1;
+  const rows=Object.entries(pv).map(([sg,v])=>({sg,v,pv:v/tot*100,s:seats[sg]||0})).sort((a,b)=>b.v-a.v);
+  const sem=rows.filter(r=>!r.s).reduce((a,r)=>a+r.v,0);
+  const top=rows.slice(0,10);
+  return `<div class="card"><h3><span>Votos × cadeiras</span><span>${vagas} vagas</span></h3>
+   <div class="big" style="font-size:28px">${pc(sem/tot*100,1)}</div><div class="mut sm" style="margin:6px 0 14px">dos votos nominais foram para partidos sem nenhuma cadeira (${fmt(sem)})</div>
+   <div class="eff">${top.map(r=>{const sp=vagas?r.s/vagas*100:0,d=sp-r.pv;return `<div class="er"><b>${esc(r.sg)}</b>
+     <div class="eb"><div class="bar"><i style="width:${r.pv*2.2}%;background:${colorOf(r.sg)}"></i></div><div class="bar"><i style="width:${sp*2.2}%;background:#e8edf7"></i></div></div>
+     <span class="num ${d>=0?'up':'dn'}">${d>=0?'+':''}${d.toFixed(1).replace('.',',')}</span><span class="vt num">${r.s?fmt(r.v/r.s)+' votos/cadeira':'sem cadeira'}</span></div>`}).join('')}</div>
+   <p class="sm mut" style="margin-top:10px;line-height:1.4">Barra colorida: % dos votos nominais. Barra branca: % das cadeiras. Número: diferença em pontos percentuais.</p></div>`;
+}
+function cardsFor(d){
+  const nomeUF=S.uf==='br'?'Brasil':UFS[S.uf][0];
+  const scope=S.mun?munNm(S.mun):nomeUF;
+  $('colL').innerHTML=leftCards(cargoNome(S.cargo,S.uf),scope,sec(d),eleit(d),votos(d));
+  const cs=cands(d),maj=CARGOS[S.cargo].maj,vagas=N(d.carg?.[0]?.nv);
+  const top=cs.slice(0,maj?8:12),lead=cs[0],sg2=cs[1];
+  let hero='',parts='';
+  const zero=!(lead&&lead.v>0);
+  if(maj&&lead&&zero){
+    hero=`<div class="card"><h3><span>Liderança</span><span>${vagas?vagas+(vagas>1?' vagas':' vaga'):''}</span></h3><div class="sm" style="line-height:1.5">Ainda não há votos apurados${S.turn===2?' no 2º turno':''}. A liderança aparece com a primeira atualização do TSE após o início da apuração.</div></div>`;
+  }else if(maj&&lead){
+    hero=`<div class="card"><h3><span>Liderança</span><span>${vagas?vagas+(vagas>1?' vagas':' vaga'):''}</span></h3>
+    <div class="hero"><div class="av" style="background:${colorOf(lead.sg)}"><span>${esc(ini(lead.nm))}</span>${img(S.cargo,S.uf,lead.sq,'avi')}</div>
+    <div style="min-width:0"><div style="font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(lead.nm)}</div><div class="mut sm">${esc(lead.sg)} · ${esc(lead.n)}</div>${stTxt(lead)}</div>
+    <div class="sp"></div><div style="text-align:right"><div class="big" style="font-size:30px">${pc(lead.p)}</div><div class="mut sm num">${fmt(lead.v)}</div></div></div>
+    ${sg2?`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)" class="row sm"><span class="mut">Diferença para ${esc(sg2.nm)}</span><b class="num">${fmt(lead.v-sg2.v)} votos · ${(lead.p-sg2.p).toFixed(2).replace('.',',')} p.p.</b></div>`:''}</div>`;
+  }else if(!maj){
+    const ps=partidos(d);const pl=ps[0];
+    if(pl)hero=`<div class="card"><h3><span>Partido mais votado</span><span>${vagas} vagas</span></h3>
+    <div class="hero"><div class="av" style="background:${colorOf(pl.sg)}"><span>${esc(pl.sg.slice(0,3))}</span></div>
+    <div style="min-width:0"><div style="font-weight:700;font-size:16px">${esc(pl.sg)}</div><div class="mut sm">${esc(pl.nm||'')}</div><span class="pill">${d.__el?.[pl.sg]||0} eleitos</span></div>
+    <div class="sp"></div><div style="text-align:right"><div class="big" style="font-size:30px">${pc(pl.p,1)}</div><div class="mut sm num">${fmt(pl.v)}</div></div></div></div>`;
+    const pv={};ps.forEach(x=>pv[x.sg]=x.v);
+    parts=effCard(pv,d.__el||{},vagas)+partyList('Votos por partido',ps.slice(0,8),x=>pc(x.p,1));
+  }
+  let pset=null;if(!S.mun&&(!maj||S.cargo==='sen')){pset=mkSet(cs.filter(x=>x.e).map(x=>({...x,uf:S.uf})),vagas,S.cargo==='sen'?1:0);setParlCur(S.uf,S.cargo,pset);$('colL').insertAdjacentHTML('beforeend',parlMini(pset));bindParlMini()}
+  const maxp=Math.max(...top.map(x=>x.p),1);
+  const list=`<div class="card"><h3><span>${maj?'Candidatos':'Candidatos mais votados'}</span><span>${maj?cs.length+' · ':''}clique para ver no mapa</span></h3><div class="rk">${top.map((x,i)=>`
+   <div class="it click" data-i="${i}"><span class="pos">${i+1}</span><span class="nm">${maj?img(S.cargo,S.uf,x.sq,'ph'):''}${esc(x.nm)}<small>${esc(x.sg)}</small></span><span class="pc">${pc(x.p)}</span>
+   <div class="b">${bar(x.p,maxp,x.sg)}</div><div class="vt">${fmt(x.v)} votos ${x.e?'· <b style="color:var(--acc)">eleito</b>':/2º/.test(x.st)?'· <b style="color:var(--warn)">2º turno</b>':''}</div></div>`).join('')}</div><input class="lsrch" id="lq" placeholder="Buscar outro candidato nesta lista${maj?'':' (40 mais votados e eleitos)'}"><div id="lres" class="rk"></div></div>`;
+  const done=S.turn===2&&S.cargo==='gov'&&govDone(S.uf);
+  const aviso=done?`<div class="card" style="border-color:rgba(124,242,200,.45)"><h3><span>Eleição definida no 1º turno</span><span>sem 2º turno</span></h3><div class="sm" style="line-height:1.5">${esc(UFS[S.uf][0])} elegeu o governador em 4 de outubro de 2026. Os números, o mapa e as camadas desta visão são do 1º turno.</div></div>`:'';
+  const decide=S.turn===2&&!S.mun&&((S.cargo==='pres'&&S.uf==='br')||(S.cargo==='gov'&&S.uf!=='br'&&S.uf!=='zz'));
+  if(maj&&lead&&!done&&vagas<=1&&decide)hero=hero.replace(/<\/div>$/,vantagemCard(d,cs)+'</div>');
+  $('mainBox').innerHTML=aviso+hero+(maj?list:parts+list);
+  {const s0=sec(d),t2=cs.slice(0,maj?2:3).map(x=>`${x.nm} (${x.sg}) ${pc(x.p,1)}`).join(' × ');S.sumTxt=`${cargoNome(S.cargo,S.uf)} · ${scope}${S.turn===2?(done?' · definido no 1º turno':' · 2º turno'):''}: ${t2}. ${pc(s0.p,1)} das seções apuradas (TSE, ${d.dg} ${d.hg}).`}
+  $('mainBox').querySelectorAll('.it.click[data-i]').forEach(el=>el.onclick=()=>pickCand({...top[+el.dataset.i],cg:S.cargo,uf:S.uf}));bindListSearch(cs,S.cargo,S.uf);
+  if(cs.length>1){rec(d,cs);$('mainBox').insertAdjacentHTML('beforeend',serieCard())}
+  S.names=top.slice(0,3).map(x=>x.nm);
+  stamp(d);
+}
+async function cardsNational(tok,fresh){
+  const cg=S.cargo,prop=isProp(cg);
+  const agg={ts:0,st:0,te:0,c:0,a:0,vv:0,vb:0,vn:0,tv:0};const rows=[];const pv={},seats={};let eleitos=0,el1=0,t2=0,vagasT=0;
+  await pool(UFKEYS,prop?8:14,async uf=>{
+    const d=await getUF(uf,cg,fresh);if(tok!==S.tok)return;
+    const s=sec(d),e=eleit(d),v=votos(d);if(!(cg==='gov'&&S.turn===2&&govDone(uf))){agg.ts+=s.ts;agg.st+=s.st;agg.te+=e.te;agg.c+=e.c;agg.a+=e.a;agg.vv+=v.vv;agg.vb+=v.vb;agg.vn+=v.vn;agg.tv+=v.tv}
+    const vagas=N(d.carg[0].nv);vagasT+=vagas;
+    if(prop){const ps=partidos(d);ps.forEach(x=>{pv[x.sg]=(pv[x.sg]||0)+x.v});for(const k in d.__el||{})seats[k]=(seats[k]||0)+d.__el[k];rows.push({uf,ps,d})}
+    else{const cs=cands(d);const ne=cs.filter(x=>x.e).length;if(cg==='gov'&&S.turn===2&&govDone(uf))el1+=ne;else eleitos+=ne;if(cg==='gov')t2+=cs.filter(x=>/2º/.test(x.st)).length;rows.push({uf,cs,vagas,d})}
+  });
+  if(tok!==S.tok)return;
+  rows.sort((a,b)=>UFS[a.uf][0].localeCompare(UFS[b.uf][0]));
+  const s={ts:agg.ts,st:agg.st,p:agg.st/(agg.ts||1)*100},e={te:agg.te,c:agg.c,pc:agg.c/(agg.te||1)*100,a:agg.a,pa:agg.a/(agg.te||1)*100};
+  const g2=cg==='gov'&&S.turn===2;
+  let left=leftCards(CARGOS[cg].nome,g2?`${S.govT2?S.govT2.size:0} UFs em 2º turno`:'Brasil',s,e,{tv:agg.tv,vv:agg.vv,vb:agg.vb,vn:agg.vn});
+  let right;
+  if(prop){
+    const tot=Object.values(pv).reduce((a,b)=>a+b,0)||1;
+    const ps=Object.entries(pv).map(([sg,v])=>({sg,v,p:v/tot*100})).sort((a,b)=>b.v-a.v);
+    left=`<div class="card"><h3><span>Cadeiras</span><span>${cg==='df'?'Câmara dos Deputados':'Assembleias'}</span></h3><div class="big">${vagasT}</div><div class="mut sm" style="margin-top:6px">vagas em disputa · ${Object.values(seats).reduce((a,b)=>a+b,0)} preenchidas</div></div>`+left;
+    right=effCard(pv,seats,vagasT)+partyList('Votos por partido · Brasil',ps.slice(0,8),x=>pc(x.p,1))+
+    `<div class="card"><h3><span>Mais votado por UF</span><span>abrir UF</span></h3><div class="rk">${rows.map(r=>{const p0=r.ps[0];return `<div class="it click" data-uf="${r.uf}"><span class="pos" style="color:var(--tx2)">${r.uf.toUpperCase()}</span><span class="nm">${esc(p0?.sg||'—')}</span><span class="pc">${p0?pc(p0.p,1):'—'}</span><div class="b">${bar(p0?.p||0,40,p0?.sg)}</div></div>`}).join('')}</div></div>`;
+  }else{
+    left=`<div class="card"><h3><span>${cg==='gov'?'Definição':'Eleitos'}</span></h3><div class="kv"><div class="l"><span>${cg==='gov'?(S.turn===2?'Governadores eleitos no 2º turno':'Governadores eleitos no 1º turno'):'Senadores eleitos'}</span><b class="num">${eleitos}</b></div>${cg==='gov'&&S.turn===2?`<div class="l"><span>Eleitos no 1º turno</span><b class="num">${el1}</b></div>`:''}${cg==='gov'?`<div class="l"><span>Disputas ${S.turn===2?'no':'para'} 2º turno</span><b class="num">${S.turn===2?(S.govT2?S.govT2.size:'-'):Math.round(t2/2)}</b></div>`:`<div class="l"><span>Vagas em disputa</span><b class="num">${vagasT}</b></div>`}</div></div>`+left;
+    right=`<div class="card"><h3><span>${cg==='sen'?'Mais votados por UF':'Líder por UF'}</span><span>abrir UF</span></h3><div class="rk">${rows.map(r=>{const l0=r.cs[0],l=l0&&l0.v>0?l0:null;const nomes=l?r.cs.slice(0,cg==='sen'?(r.vagas||2):1).map(x=>x.nm).join(' · '):(S.turn===2?'2º turno · aguardando apuração':'aguardando apuração');return `<div class="it click" data-uf="${r.uf}"><span class="pos" style="color:var(--tx2)">${r.uf.toUpperCase()}</span><span class="nm">${esc(nomes||'—')}<small>${esc(l?.sg||'')}</small></span><span class="pc">${l?pc(l.p,1):'—'}</span><div class="b">${bar(l?.p||0,100,l?.sg)}</div></div>`}).join('')}</div></div>`;
+  }
+  let nset=null;if(cg==='df'||cg==='sen'){const els=[];rows.forEach(r=>{(prop?cands(r.d).filter(x=>x.e):r.cs.filter(x=>x.e)).forEach(x=>els.push({...x,uf:r.uf}))});nset=mkSet(els,vagasT,cg==='sen'?27:0);setParlCur('br',cg,nset);left+=parlMini(nset)}else if(cg==='gov')left+=govMini(rows);
+  $('colL').innerHTML=left;$('mainBox').innerHTML=right;
+  if(nset)bindParlMini();if(cg==='gov')bindGov();
+  $('mainBox').querySelectorAll('.it.click').forEach(el=>el.onclick=()=>go({uf:el.dataset.uf,mun:null}));
+  S.names=[];S.sumTxt=`${CARGOS[cg].nome} · Brasil${S.turn===2?' · 2º turno':''}: ${pc(s.p,1)} das seções apuradas (TSE).`;
+  stamp((rows.find(r=>!(g2&&govDone(r.uf)))||rows[0])?.d);
+}
+async function extCard(tok,fresh){
+  try{const d=await getUF('zz','pres',fresh);if(tok!==S.tok)return;const cs=cands(d),s=sec(d),e=eleit(d),t=cs.slice(0,2);
+    const h=`<div class="card extc click" id="extc" style="cursor:pointer" title="Abrir a votação no exterior"><h3><span>Exterior</span><span>${(S.munList.zz||[]).length||186} cidades · abrir ↗</span></h3>
+    ${t.map(x=>`<div class="row sm"><span>${'<i style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:'+colorOf(x.sg)+'"></i>'}${esc(x.nm)}</span><b class="num">${x.v?pc(x.p,1):'-'}</b></div>`).join('')}
+    <div class="mut sm" style="margin-top:8px">${pc(s.p,1)} das seções apuradas · ${fmt(e.te)} eleitores. Os votos do exterior já estão no total do Brasil.</div></div>`;
+    $('colL').insertAdjacentHTML('beforeend',h);$('extc').onclick=()=>go({uf:'zz',mun:null,cargo:'pres'})}catch(e){}
+}
+function stamp(d){if(!d)return;$('stamp').title='';const z=!N(d.s?.st);const el=$('stamp');el.textContent=z?`${S.turn===2?'2º turno · ':''}aguardando apuração`:`TSE ${String(d.dg||'').slice(0,5)} ${d.hg}`;el.title=z?'':`Totalização do TSE em ${d.dg} às ${d.hg}`;$('dot').classList.remove('err')}
+
+/* ===== buscas (Google Trends removido na v5.3) ===== */
+function renderTrend(){$('trendBox').innerHTML=''}
+
+/* ===== título, camadas, turnos ===== */
+function mapTitle(){
+  const L=S.layer;
+  if(S.turn===2&&S.mapCargo==='gov'&&govDone(S.uf)&&(L==='lider'||L==='margem'||L==='decisivo'||L==='abst'))return mapTitle0()+' · definido no 1º turno';
+  return mapTitle0();
+}
+function mapTitle0(){
+  const L=S.layer;
+  if(L==='lider')return S.uf==='br'&&isProp(S.cargo)?`${cargoNome(S.cargo,S.uf)} · partido mais votado`:(S.uf!=='br'&&isProp(S.cargo)?`Mapa: ${isProp(S.mapCargo)?'candidato mais votado · ':''}${cargoNome(S.mapCargo,S.uf)}`:cargoNome(S.mapCargo,S.uf));
+  if(L==='cand'&&S.cand)return `${S.cand.nm} · ${cargoNome(S.cand.cg,S.cand.uf||S.uf)}`;
+  const ln=LAYERS.find(x=>x[0]===L)[1];
+  return `${ln} · ${L==='pxg'?'Presidente × Governador':L==='sim'?CARGOS[simCg()].nome:cargoNome(S.mapCargo,S.uf)}`;
+}
+function drawLayers(){
+  const list=LAYERS.filter(([k])=>!(S.uf==='zz'&&(k==='pxg'||k==='sim'))&&!(k==='decisivo'&&isProp(S.cargo))).filter(([k])=>k==='cand'?!!S.cand:(k==='desl'||k==='abstvar'||k==='virada')?S.turn===2&&!(S.cargo==='gov'&&govDone(S.uf)):S.turn===2?!['pxg','sim'].includes(k):true);
+  const el=$('layers');
+  el.innerHTML=list.map(([k,n,t])=>`<button data-k="${k}" class="${k===S.layer?'on':''}" title="${t}">${k==='cand'?esc((S.cand.nm.split(' ')[0]||'Candidato'))+' ✕':n}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>b.dataset.k==='cand'&&S.layer==='cand'?clearCand():go({layer:b.dataset.k}));
+}
+const T2_DATE=new Date('2026-10-25T00:00:00-03:00');
+function drawTurns(){
+  const el=$('turns');if(!el)return;
+  el.innerHTML=`<button data-t="1" class="${S.turn===1?'on':''}">1º turno</button><button data-t="2" class="${S.turn===2?'on':''}" ${S.t2ok?'':'disabled'} title="${S.t2ok?'Resultados do 2º turno':'Liga sozinho quando o TSE publicar o 2º turno (25 de outubro de 2026)'}">2º turno</button>`;
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.disabled)return;go({turn:+b.dataset.t,mun:null})});
+}
+/* ===== configuração do TSE e UFs com 2º turno (v5.3) ===== */
+async function loadCfg(){
+  try{
+    const r=await fetch('https://resultados.tse.jus.br/oficial/comum/config/ele-c.json',{cache:'no-cache'});if(!r.ok)return;
+    const tx=await r.text();let j;try{j=JSON.parse(tx)}catch(e){j=dec(tx)}
+    const els=[];(j.pl||[]).forEach(p=>(p.e||[]).forEach(e=>els.push(e)));
+    for(const C of Object.values(CARGOS)){const e=els.find(x=>String(x.cd)===C.ele);if(e&&e.cdt2&&C.ele2)C.ele2=String(e.cdt2)}
+    S.cfgOk=true;
+  }catch(e){}
+}
+function loadGovT2(){return S.govT2P=S.govT2P||(async()=>{
+  const set=new Set();
+  await pool(UFKEYS,8,async uf=>{const d=await getUF(uf,'gov',false,1);if(cands(d).some(x=>/2º/.test(x.st)))set.add(uf)});
+  if(set.size){S.govT2=set;markUFs()}
+})()}
+function markUFs(){
+  const on=S.turn===2&&S.cargo==='gov'&&S.govT2;
+  for(const o of sel.options){if(o.value==='br'||o.value==='zz')continue;const no=on&&!S.govT2.has(o.value);o.textContent=UFS[o.value][0]+(no?' (eleito no 1º turno)':'');o.disabled=false}
+}
+async function probeT2(){
+  let ok=false;try{const r=await fetch(brpres(2),{cache:'no-cache'});ok=r.ok}catch(e){}
+  const was=S.t2ok;S.t2ok=ok;drawTurns();
+  if(ok&&!was&&S.turn===1&&(S.wantT2||new Date()>=T2_DATE)){S.wantT2=false;S.autoT2=true;go({turn:2,mun:null})}
+}
+
+/* ===== hexágonos ===== */
+const HEX={rr:[2,0],ap:[4,0],am:[1,1],pa:[3,1],ma:[4,1],ce:[5,1],rn:[6,1],ac:[0,2],ro:[1,2],mt:[2,2],to:[3,2],pi:[4,2],pe:[5,2],pb:[6,2],ms:[1,3],go:[2,3],df:[3,3],ba:[4,3],se:[5,3],al:[6,3],sp:[2,4],mg:[3,4],es:[4,4],pr:[2,5],rj:[4,5],sc:[2,6],rs:[2,7]};
+function hexItems(){
+  const R=44,w=Math.sqrt(3)*R,pt=78,pb=92,H=800-pt-pb,Hh=7*1.5*R+2*R,Ww=7.5*w;
+  const ox=(800-Ww)/2+w/2,oy=pt+(H-Hh)/2+R;
+  return UFKEYS.map(uf=>{const [c,r]=HEX[uf];const x=ox+(c+(r%2?0.5:0))*w,y=oy+r*1.5*R;
+    const pts=[0,1,2,3,4,5].map(i=>{const a=Math.PI/180*(60*i-30);return (x+R*0.96*Math.cos(a)).toFixed(1)+' '+(y+R*0.96*Math.sin(a)).toFixed(1)});
+    return {id:uf,d:'M'+pts.join('L')+'Z',lab:uf.toUpperCase(),x,y}});
+}
+
+/* ===== mapa de um candidato ===== */
+function candEntry(uf,m){const d=cache.get(dataUrl(uf,S.cand.cg,m,S.turn))?.d;if(!d)return null;return {d,c:cands(d).find(x=>x.sq===S.cand.sq)}}
+function candShare(uf,m){if(!S.cand)return null;const e=candEntry(uf,m);if(!e)return null;return e.c?e.c.p:0}
+function candVotes(uf,m){if(!S.cand)return 0;const e=candEntry(uf,m);return e&&e.c?e.c.v:0}
+function candUnits(){
+  if(!S.cand)return[];
+  const nat=S.uf==='br',items=nat?UFKEYS.map(u=>({id:u,nome:UFS[u][0],uf:u,m:null})):(S.munList[S.uf]||[]).map(m=>({id:m.cd,nome:m.nm,uf:S.uf,m:m.cd}));
+  const out=[];for(const it of items){const sh=candShare(it.uf,it.m);if(sh==null)continue;out.push({...it,sh,v:candVotes(it.uf,it.m)})}
+  return out;
+}
+function pickCand(x){
+  if(!x)return;
+  const uf=x.cg==='pres'?S.uf:(x.uf||S.uf);
+  go({cand:{sq:x.sq,n:x.n,nm:x.nm,sg:x.sg,cg:x.cg,uf:x.cg==='pres'?null:uf},layer:'cand',cargo:x.cg,uf,mun:null});
+}
+function candBox(box){
+  const c=S.cand;if(!c){box.innerHTML='';return}
+  const U=candUnits();if(!U.length){box.innerHTML='<div class="card"><h3><span>Desempenho do candidato</span><span><button class="xbtn" id="candX">Limpar ✕</button></span></h3><div class="mut sm">Lendo dados de '+esc(c.nm)+'…</div></div>';$('candX').onclick=clearCand;return}
+  const tot=U.reduce((a,u)=>a+u.v,0),w=unitWord();
+  const byShare=[...U].sort((a,b)=>b.sh-a.sh).slice(0,6),byVotes=[...U].sort((a,b)=>b.v-a.v).slice(0,4);
+  box.innerHTML=`<div class="card"><h3><span>Desempenho do candidato</span><span>${U.length}/${totalUnits()} <button class="xbtn" id="candX">Limpar ✕</button></span></h3>
+  <div class="hero"><div class="av" style="background:${colorOf(c.sg)}"><span>${esc(ini(c.nm))}</span>${img(c.cg,c.uf||S.uf,c.sq,'avi')}</div><div style="min-width:0"><div style="font-weight:700">${esc(c.nm)}</div><div class="mut sm">${esc(c.sg)} · ${esc(cargoNome(c.cg,c.uf||S.uf))}</div></div></div>
+  <div class="big" style="margin-top:14px;font-size:28px">${fmt(tot)}</div><div class="mut sm">votos ${S.uf==='br'||S.uf==='zz'?'nas':'nos'} ${w} já lidos${c.cg==='pres'&&S.uf==='br'?' (sem o exterior)':''}${isProp(c.cg)?' (considera os 40 mais votados de cada município)':''}</div>
+  <div style="margin-top:14px"><div class="sm mut" style="margin-bottom:6px">Maior percentual</div>${listRows(byShare,r=>rowU(r.nome,pc(r.sh,1),fmt(r.v)+' votos'))}</div>
+  <div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Mais votos</div>${listRows(byVotes,r=>rowU(r.nome,fmt(r.v),pc(r.sh,1)))}</div></div>`;
+  $('candX').onclick=clearCand;
+}
+
+/* ===== deslocamento 1º → 2º turno ===== */
+function deslVal(uf,m){
+  const cg=S.mapCargo;if(cg==='gov'&&govDone(uf))return null;const l2=leaders[K(cg,uf,m,2)],l1=leaders[K(cg,uf,m,1)];
+  if(!l2||!l1||!l2.all||!l1.all)return null;
+  let A,B;if(S.fin){A=S.fin[0];B=S.fin[1]}else{const t=l2.all;if(t.length<2)return null;A=t[0];B=t[1]}
+  const v=(l,x)=>{const e=l.all.find(y=>y.n===x.n);return e?e.v:0};
+  const a1=v(l1,A),b1=v(l1,B),a2=v(l2,A),b2=v(l2,B);
+  if(a1+b1<=0||a2+b2<=0)return null;
+  const s1=a1/(a1+b1)*100,s2=a2/(a2+b2)*100;
+  return{d:s2-s1,s1,s2,a1,b1,a2,b2,sgA:A.sg,nmA:A.nm,sgB:B.sg,nmB:B.nm};
+}
+/* ===== viradas (v5.8): líder entre os dois finalistas, 1º turno × 2º turno ===== */
+function viradaVal(uf,m){
+  const r=deslVal(uf,m);if(!r)return null;
+  const l1=r.a1>=r.b1,l2=r.a2>=r.b2;
+  return {flip:l1!==l2,sg1:l1?r.sgA:r.sgB,nm1:l1?r.nmA:r.nmB,sg2:l2?r.sgA:r.sgB,nm2:l2?r.nmA:r.nmB,
+    s1:(l1?r.a1:r.b1)/(r.a1+r.b1)*100,s2:(l2?r.a2:r.b2)/(r.a2+r.b2)*100,mv2:Math.abs(r.a2-r.b2),sec:(leaders[K(S.mapCargo,uf,m,2)]||{}).sec||0};
+}
+function viradaUnits(){return units(S.mapCargo).map(u=>({...u,v:viradaVal(u.uf,S.uf==='br'?null:u.id)})).filter(u=>u.v)}
+function viradaBox(box){
+  const U=viradaUnits();if(!U.length||!S.fin){box.innerHTML='<div class="card"><div class="mut sm">Aguardando dados dos dois turnos…</div></div>';return}
+  const [A,B]=S.fin,w=unitWord(),F=U.filter(u=>u.v.flip).sort((x,y)=>y.v.mv2-x.v.mv2);
+  const nA=F.filter(u=>u.v.sg2===A.sg).length,nB=F.length-nA;
+  box.innerHTML=`<div class="card"><h3><span>Viradas entre turnos</span><span>${U.length}/${totalUnits()-offN()}</span></h3>
+   <div class="big">${F.length}</div><div class="mut sm" style="margin-top:6px">${w} em que o líder entre os dois finalistas mudou</div>
+   <div class="kv" style="margin-top:12px"><div class="l"><span style="color:${colorOf(A.sg)}">Viradas para ${esc(A.nm)}</span><b class="num">${nA}</b></div><div class="l"><span style="color:${colorOf(B.sg)}">Viradas para ${esc(B.nm)}</span><b class="num">${nB}</b></div></div>
+   ${F.length?`<div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Maiores viradas (vantagem atual)</div>${listRows(F.slice(0,6),r=>rowU(r.nome,fmt(r.v.mv2),`${esc(r.v.nm1.split(' ')[0])} ${pc(r.v.s1,1)} → ${esc(r.v.nm2.split(' ')[0])} ${pc(r.v.s2,1)} · ${pc(r.v.sec,0)} apurado`))}</div>`:''}
+   <p class="sm mut" style="margin-top:10px;line-height:1.4">No 1º turno, considera só os votos dos dois finalistas. Com a apuração em andamento, a vantagem do 2º turno ainda pode mudar.</p></div>`;
+}
+function deslUnits(){return units(S.mapCargo).map(u=>({...u,r:deslVal(u.uf,S.uf==='br'?null:u.id)})).filter(u=>u.r)}
+function deslLegend(){
+  const U=deslUnits();if(!U.length)return '';
+  if(S.fin){const [A,B]=S.fin;let a=0,b=0;U.forEach(u=>u.r.d>=0?a++:b++);return swt(colorOf(A.sg),esc(A.nm)+' ganhou terreno',a)+swt(colorOf(B.sg),esc(B.nm)+' ganhou terreno',b)+'<span>seta: inclinação e tamanho = variação</span>'}
+  return '<span>cor: quem ganhou terreno · intensidade: variação</span>';
+}
+function deslBox(box){
+  const U=deslUnits();if(!U.length){box.innerHTML='<div class="card"><div class="mut sm">Aguardando dados dos dois turnos…</div></div>';return}
+  const w=unitWord();let head='';
+  if(S.fin){const [A,B]=S.fin;const t=U.reduce((o,u)=>({a1:o.a1+u.r.a1,b1:o.b1+u.r.b1,a2:o.a2+u.r.a2,b2:o.b2+u.r.b2}),{a1:0,b1:0,a2:0,b2:0});
+    const s1=t.a1/(t.a1+t.b1)*100,s2=t.a2/(t.a2+t.b2)*100,d=s2-s1;
+    head=`<div class="big">${d>=0?'+':''}${d.toFixed(2).replace('.',',')} p.p.</div><div class="mut sm" style="margin-top:6px">variação da fatia de ${esc(A.nm)} na disputa entre os dois finalistas: ${pc(s1,1)} no 1º turno e ${pc(s2,1)} no 2º</div>`}
+  else head=`<div class="big">${U.length}</div><div class="mut sm" style="margin-top:6px">${w} com os dois turnos lidos</div>`;
+  const up=[...U].sort((x,y)=>y.r.d-x.r.d).slice(0,5),dn=[...U].sort((x,y)=>x.r.d-y.r.d).slice(0,5);
+  const row=r=>rowU(r.nome,(r.r.d>=0?'+':'')+r.r.d.toFixed(1).replace('.',',')+' p.p.',`${esc(r.r.nmA)}: ${pc(r.r.s1,1)} → ${pc(r.r.s2,1)}`);
+  box.innerHTML=`<div class="card"><h3><span>Deslocamento entre turnos</span><span>${U.length}/${totalUnits()-offN()}</span></h3>${head}
+  <div style="margin-top:14px"><div class="sm mut" style="margin-bottom:6px">Maior avanço do primeiro finalista</div>${listRows(up,row)}</div>
+  <div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Maior recuo</div>${listRows(dn,row)}</div>
+  <p class="sm mut" style="margin-top:10px;line-height:1.4">Compara a fatia de cada finalista entre os votos que os dois tiveram, para que o resultado dos demais candidatos do 1º turno não distorça a comparação.</p></div>`;
+}
+function drawArrows(){
+  let g=document.getElementById('arrows');if(g)g.remove();
+  if(S.layer!=='desl'||!curMap)return;
+  g=document.createElementNS('http://www.w3.org/2000/svg','g');g.id='arrows';g.setAttribute('pointer-events','none');
+  let h='';
+  const ids=curMap.nat?UFKEYS:(S.munList[S.uf]||[]).map(m=>m.cdi);
+  for(const id of ids){
+    const p=curMap.paths[id];if(!p)continue;
+    const uf=curMap.nat?id:S.uf,m=curMap.nat?null:((S.munList[S.uf].find(x=>x.cdi===id)||{}).cd);
+    const r=deslVal(uf,m);if(!r)continue;
+    let c=curMap.ctr[id];if(!c){const b=p.getBBox();c=curMap.ctr[id]=[b.x+b.width/2,b.y+b.height/2]}
+    const mag=Math.min(Math.abs(r.d)/8,1),L=(curMap.nat?10:5)+mag*(curMap.nat?16:8),th=(r.d>=0?-1:1)*mag*1.05;
+    const dx=Math.sin(th)*L,dy=-Math.cos(th)*L,x0=c[0]-dx/2,y0=c[1]-dy/2,x1=c[0]+dx/2,y1=c[1]+dy/2;
+    h+=`<path d="M${x0.toFixed(1)} ${y0.toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}" stroke="#fff" stroke-opacity=".85" stroke-width="${curMap.nat?2:1.2}" stroke-linecap="round"/><circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="${curMap.nat?2.6:1.5}" fill="#fff" fill-opacity=".9"/>`;
+  }
+  g.innerHTML=h;$('map').appendChild(g);
+}
+
+/* ===== votos absolutos (v5.3) ===== */
+function drawBubbles(){
+  let g=document.getElementById('bubbles');if(g)g.remove();
+  if(S.layer!=='bolhas'||!curMap)return;
+  const nat=curMap.nat,list=[];
+  const ids=nat?UFKEYS:(S.munList[S.uf]||[]).map(m=>m.cdi);
+  for(const id of ids){const p=curMap.paths[id];if(!p)continue;
+    const uf=nat?id:S.uf,m=nat?null:((S.munList[S.uf].find(x=>x.cdi===id)||{}).cd);
+    const l=leaders[K(S.mapCargo,uf,m)];if(!l||!l.mv||(nat&&t1Off(uf)))continue;
+    let c=curMap.ctr[id];if(!c){const b=p.getBBox();c=curMap.ctr[id]=[b.x+b.width/2,b.y+b.height/2]}
+    list.push({c,l})}
+  if(!list.length)return;
+  const mx=Math.max(...list.map(x=>x.l.mv)),R=nat?46:26;
+  list.sort((a,b)=>b.l.mv-a.l.mv);
+  g=document.createElementNS('http://www.w3.org/2000/svg','g');g.id='bubbles';g.setAttribute('pointer-events','none');
+  g.innerHTML=list.map(({c,l})=>{const r=Math.max(nat?2:1,Math.sqrt(l.mv/mx)*R),col=colorOf(l.sg);return `<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${r.toFixed(1)}" fill="${col}" fill-opacity=".55" stroke="${col}" stroke-width="1"/>`}).join('');
+  $('map').appendChild(g);
+}
+function bolhasBox(box){
+  const U=units(S.mapCargo);if(!U.length){box.innerHTML='';return}
+  const by={};U.forEach(u=>{const k=u.l.nm;(by[k]=by[k]||{nm:u.l.nm,sg:u.l.sg,v:0,n:0});by[k].v+=u.l.mv;by[k].n++});
+  const sal=Object.values(by).sort((a,b)=>b.v-a.v).slice(0,4),R=[...U].sort((a,b)=>b.l.mv-a.l.mv).slice(0,6),w=unitWord();
+  box.innerHTML=`<div class="card"><h3><span>Onde a vantagem pesa</span><span>${U.length}/${totalUnits()-offN()}</span></h3>
+   <div class="sm mut" style="margin-bottom:6px">Soma das vantagens ${S.uf==='br'||S.uf==='zz'?'nas':'nos'} ${w} em que lidera</div>${listRows(sal,x=>rowU(x.nm,fmt(x.v),`${esc(x.sg)} · lidera em ${x.n} ${x.n===1?w.replace(/s$/,'').replace(/õe$/,'ão').replace('municípi','município').replace('municípioo','município'):w}`))}
+   <div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Maiores vantagens em votos</div>${listRows(R,r=>rowU(r.nome,fmt(r.l.mv),`${esc(r.l.nm)} (${esc(r.l.sg)}) · ${r.l.mg.toFixed(1).replace('.',',')} p.p.`))}</div></div>`;
+}
+
+/* ===== abstenção 1º × 2º turno (v5.3) ===== */
+function abstVar(uf,m){if(S.mapCargo==='gov'&&govDone(uf))return null;const a=leaders[K(S.mapCargo,uf,m,1)],b=leaders[K(S.mapCargo,uf,m,2)];if(!a||!b||!a.te||!b.sec)return null;return b.abs-a.abs}
+function abstVarBox(box){
+  const U=units(S.mapCargo).map(u=>{const m=S.uf==='br'?null:u.id,a=leaders[K(S.mapCargo,u.uf,m,1)];return {...u,a,r:abstVar(u.uf,m)}}).filter(u=>u.r!=null);
+  if(!U.length){box.innerHTML='<div class="card"><div class="mut sm">Aguardando dados dos dois turnos…</div></div>';return}
+  const te=U.reduce((s,u)=>s+u.l.te,0)||1,a1=U.reduce((s,u)=>s+u.a.abs*u.a.te,0)/te,a2=U.reduce((s,u)=>s+u.l.abs*u.l.te,0)/te,d=a2-a1;
+  const up=[...U].sort((x,y)=>y.r-x.r).slice(0,5),dn=[...U].sort((x,y)=>x.r-y.r).slice(0,5);
+  const row=r=>rowU(r.nome,(r.r>=0?'+':'')+r.r.toFixed(1).replace('.',',')+' p.p.',`${pc(r.a.abs,1)} → ${pc(r.l.abs,1)}`);
+  box.innerHTML=`<div class="card"><h3><span>Abstenção entre turnos</span><span>${U.length}/${totalUnits()-offN()}</span></h3>
+   <div class="big">${d>=0?'+':''}${d.toFixed(2).replace('.',',')} p.p.</div><div class="mut sm" style="margin-top:6px">de ${pc(a1,1)} no 1º turno para ${pc(a2,1)} no 2º (média ponderada pelo eleitorado)</div>
+   <div style="margin-top:14px"><div class="sm mut" style="margin-bottom:6px">Maiores altas</div>${listRows(up,row)}</div>
+   <div style="margin-top:12px"><div class="sm mut" style="margin-bottom:6px">Maiores quedas</div>${listRows(dn,row)}</div>
+   <p class="sm mut" style="margin-top:10px;line-height:1.4">Durante a apuração, a abstenção do 2º turno considera apenas as seções já totalizadas.</p></div>`;
+}
+
+/* ===== vantagem × votos restantes (v5.3) ===== */
+function vantagemCard(d,cs){
+  const s=sec(d);if(cs.length<2||s.p>=99.995||!s.st)return '';
+  const e=eleit(d),v=votos(d),f=s.st/(s.ts||1);
+  const restEl=N(d.e?.esnt)||Math.max(0,e.te*(1-f));
+  const restVal=f>0?v.vv*(1-f)/f:0;
+  const A=cs[0],B=cs[1],lead=A.v-B.v;
+  let st,msg;
+  if(lead>restEl){st='<span class="st ok">Matematicamente definido</span>';msg=`Mesmo que todos os eleitores das seções restantes votassem em ${esc(B.nm)}, a diferença não seria revertida.`}
+  else{const need=restVal>0?(lead/restVal+1)/2*100:100;
+    if(need>100){st='<span class="st q">Virada improvável</span>';msg=`${esc(B.nm)} precisaria de mais votos válidos do que a estimativa de votos restantes.`}
+    else{st='<span class="st o">Em aberto</span>';msg=`${esc(B.nm)} precisaria de ${pc(need,1)} dos votos válidos restantes para empatar.`}}
+  return `<div class="vr">${st}<div class="kv">
+   <div class="l"><span>Vantagem atual</span><b class="num">${fmt(lead)} votos</b></div>
+   <div class="l"><span>Votos válidos restantes (estimativa)</span><b class="num">${fmt(restVal)}</b></div>
+   <div class="l"><span>Eleitores das seções restantes</span><b class="num">${fmt(restEl)}</b></div></div>
+   <div class="sm mut" style="margin-top:8px;line-height:1.45">${msg} Indicação matemática, não substitui a declaração oficial do TSE.</div></div>`;
+}
+
+/* ===== projeção dos votos restantes ===== */
+async function projBox(box){
+  await ensureUFs('pres');
+  const per={};let any=false,stT=0,tsT=0;const MIN=20,DV=.05;
+  for(const uf of UFKEYS){const l=leaders[K('pres',uf)];if(!l||!l.all)continue;const d=cache.get(dataUrl(uf,'pres',null,S.turn))?.d,s=d?sec(d):null;if(s){stT+=s.st;tsT+=s.ts}
+    if(!l.sec)continue;any=true;const f=l.sec/100,tot=l.all.reduce((a,c)=>a+c.v,0)||1,rem=tot*(1-f)/f;
+    for(const c of l.all){const sh=c.v/tot,x=per[c.n]=per[c.n]||{nm:c.nm,sg:c.sg,cur:0,proj:0,lo:0,hi:0};x.cur+=c.v;x.proj+=c.v+sh*rem;x.lo+=c.v+Math.max(0,sh-DV)*rem;x.hi+=c.v+Math.min(1,sh+DV)*rem}}
+  const ap=tsT?stT/tsT*100:0;
+  if(!any||ap>=99.95){box.innerHTML='';return}
+  if(ap<MIN){box.innerHTML=`<div class="card"><h3><span>Projeção do resultado final</span><span>votos restantes</span></h3><div class="mut sm" style="line-height:1.5">A projeção aparece a partir de ${MIN}% das seções apuradas no país (agora: ${pc(ap,1)}). Os primeiros números costumam vir de regiões que não representam o conjunto do eleitorado.</div></div>`;return}
+  const all=Object.values(per),tp=all.reduce((a,x)=>a+x.proj,0)||1,tc=all.reduce((a,x)=>a+x.cur,0)||1,arr=all.sort((a,b)=>b.proj-a.proj).slice(0,3);
+  box.innerHTML=`<div class="card"><h3><span>Projeção do resultado final</span><span>${pc(ap,1)} apurado</span></h3><div class="rk">${arr.map(x=>{const lo=x.lo/tp*100,hi=x.hi/tp*100,p=x.proj/tp*100,c=colorOf(x.sg);return `<div class="it"><span class="pos"></span><span class="nm">${esc(x.nm)}<small>${esc(x.sg)}</small></span><span class="pc">${pc(p,1)}</span><div class="b"><div class="band"><i style="left:${lo}%;width:${Math.max(.5,hi-lo)}%;background:${c}"></i><b style="left:${p}%"></b></div></div><div class="vt">faixa de ${pc(lo,1)} a ${pc(hi,1)} · hoje ${pc(x.cur/tc*100,1)}</div></div>`}).join('')}</div>
+  <p class="sm mut" style="margin-top:10px;line-height:1.4">Estimativa: cada UF mantém o perfil das seções já apuradas. A faixa mostra o resultado se os votos restantes de cada UF variarem ${DV*100} p.p. para cima ou para baixo. É um cenário, não uma previsão nem uma declaração de resultado.</p></div>`;
+}
+
+/* ===== boca de jacaré (v5.7) =====
+   Cada leitura do TSE com seções apuradas vira um nó. O TSE publica só o instante atual,
+   então o histórico existe apenas enquanto este painel esteve aberto (fica guardado no navegador). */
+const JC={};
+const jkey=(ele,uf,cd)=>'jc26:'+ele+'/'+uf+'/'+cd;
+function jget(k){if(JC[k])return JC[k];let a=[];try{a=JSON.parse(localStorage.getItem(k)||'[]')}catch(e){}return JC[k]=a}
+function jrec(url,d){
+  const m=url.match(/\/(\d{4})\/dados\/(\w+)\/(\w+?)-c(0001|0003)-e00\d+-u\.jws/);if(!m||m[2]!==m[3])return;
+  if(m[1]!==CARGOS.pres.ele2&&m[1]!==CARGOS.gov.ele2)return;
+  const st=N(d.s?.st);if(!st)return;
+  const k=jkey(m[1],m[2],m[4]),a=jget(k),last=a[a.length-1];if(last&&last.st===st)return;
+  const cs=cands(d).slice(0,2);if(cs.length<2)return;
+  a.push({t:Date.now(),h:d.hg||'',st,p:N(d.s?.pstn),c:cs.map(x=>[x.sq,x.nm,x.sg,x.p,x.v])});
+  while(a.length>500)a.shift();
+  try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}
+  if($('jmodal')&&$('jmodal').classList.contains('on'))jacDraw();
+}
+async function jacPull(){
+  if(S.turn!==2||!S.t2ok)return;
+  const now=Date.now(),old=u=>{const h=cache.get(u);return !h||now-h.at>20000};
+  const urls=[brpres(2),dataUrl('zz','pres',null,2),...UFKEYS.map(uf=>dataUrl(uf,'pres',null,2)),...[...(S.govT2||[])].map(uf=>dataUrl(uf,'gov',null,2))].filter(old);
+  await pool(urls,6,u=>getJ(u,true));
+}
+function jacSvg(a,big){
+  const W=big?720:300,H=big?300:150,L=big?40:30,Rg=big?150:88,T=12,B=big?30:24;
+  if(!a.length)return '';
+  const ids=[],meta={};a.forEach(q=>q.c.forEach(([sq,nm,sg])=>{if(!meta[sq]){meta[sq]={nm,sg};ids.push(sq)}}));
+  const use=ids.slice(0,2);
+  const ps=a.map(q=>q.p),x0=Math.max(0,Math.floor((Math.min(...ps)-1)/10)*10),x1=100;
+  const vals=[];a.forEach(q=>q.c.forEach(c=>{if(use.includes(c[0]))vals.push(c[3])}));
+  let y0=Math.min(...vals,50)-2,y1=Math.max(...vals,50)+2;y0=Math.max(0,Math.floor(y0/5)*5);y1=Math.min(100,Math.ceil(y1/5)*5);
+  const X=p=>L+(p-x0)/(x1-x0||1)*(W-L-Rg),Y=v=>T+(1-(v-y0)/(y1-y0||1))*(H-T-B);
+  const val=(q,sq)=>{const c=q.c.find(x=>x[0]===sq);return c?c[3]:null};
+  const cols=use.map(sq=>colorOf(meta[sq].sg));if(cols[0]===cols[1])cols[1]='#cbd5e8';
+  let g='';
+  for(let v=y0;v<=y1;v+=(y1-y0)>20?10:5)g+=`<line x1="${L}" x2="${W-Rg}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#1f2940"/><text x="${L-6}" y="${Y(v).toFixed(1)}" fill="#5d6b88" font-size="${big?10:8.5}" text-anchor="end" dominant-baseline="central">${v}%</text>`;
+  for(let p=x0;p<=100;p+=(100-x0)>40?20:10)g+=`<text x="${X(p).toFixed(1)}" y="${H-B+14}" fill="#5d6b88" font-size="${big?10:8.5}" text-anchor="middle">${p}%</text>`;
+  if(y0<50&&y1>50)g+=`<line x1="${L}" x2="${W-Rg}" y1="${Y(50).toFixed(1)}" y2="${Y(50).toFixed(1)}" stroke="#9aa8c4" stroke-dasharray="4 4" stroke-opacity=".6"/>`;
+  const pts=use.map(sq=>a.map(q=>[q,val(q,sq)]).filter(x=>x[1]!=null));
+  if(pts[0].length&&pts[1]&&pts[1].length){const up=pts[0].map(([q,v])=>X(q.p).toFixed(1)+','+Y(v).toFixed(1)),dn=[...pts[1]].reverse().map(([q,v])=>X(q.p).toFixed(1)+','+Y(v).toFixed(1));g+=`<polygon points="${up.concat(dn).join(' ')}" fill="#e8edf7" fill-opacity=".05"/>`}
+  use.forEach((sq,i)=>{const P=pts[i];if(!P.length)return;const c=cols[i];
+    g+=`<polyline points="${P.map(([q,v])=>X(q.p).toFixed(1)+','+Y(v).toFixed(1)).join(' ')}" fill="none" stroke="${c}" stroke-width="${big?2.2:1.8}" stroke-linejoin="round"/>`;
+    g+=P.map(([q,v])=>`<circle cx="${X(q.p).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${big?3:2.2}" fill="${c}" stroke="#0f1420" stroke-width="1"><title>${esc(meta[sq].nm)}: ${pc(v,2)} · ${pc(q.p,2)} das seções · TSE ${esc(q.h)}</title></circle>`).join('');
+    const lv=P[P.length-1][1],ly=Y(lv);g+=`<text x="${W-Rg+8}" y="${(ly+(i===0?(lv>=val(a[a.length-1],use[1])?-6:6):(lv>val(a[a.length-1],use[0])?-6:6))).toFixed(1)}" fill="${c}" font-size="${big?12:9.5}" font-weight="700" dominant-baseline="central">${pc(lv,big?2:1)} ${esc(meta[sq].nm.split(' ')[0])}</text>`});
+  return `<svg class="jsv" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+function jacPanel(title,ele,uf,cd,big,note){
+  const a=jget(jkey(ele,uf,cd)),last=a[a.length-1];
+  const sub=last?`${a.length} ${a.length>1?'nós':'nó'} · ${pc(last.p,1)} apurado`:'sem leituras';
+  const body=note?`<div class="jempty">${note}</div>`:a.length?jacSvg(a,big):`<div class="jempty">Ainda sem leituras com seções apuradas. O primeiro nó aparece na primeira atualização do TSE após o início da apuração.</div>`;
+  return `<div class="jc${big?' big':''}"><h4><span>${esc(title)}</span><span>${sub}</span></h4>${body}</div>`;
+}
+function jacDraw(){
+  const box=$('jbody');if(!box)return;
+  const P=CARGOS.pres.ele2,G=CARGOS.gov.ele2,uf=S.uf,nome=uf==='br'?'Brasil':UFS[uf][0];
+  let h='';
+  if(S.turn!==2)h=`<div class="jempty">O gráfico registra a apuração do 2º turno em tempo real. Volte para a visão do 2º turno.</div>`;
+  else if(uf==='br'){
+    h=jacPanel('Presidente · Brasil',P,'br','0001',true)+`<div class="sm mut" style="margin-top:16px">Governador · disputas de 2º turno</div><div class="jgrid">${[...(S.govT2||[])].sort((a,b)=>UFS[a][0].localeCompare(UFS[b][0])).map(u=>jacPanel(UFS[u][0],G,u,'0003',false)).join('')}</div>`;
+  }else if(uf==='zz')h=jacPanel('Presidente · Exterior',P,'zz','0001',true);
+  else{
+    const gnote=govDone(uf)?`${esc(nome)} elegeu o governador no 1º turno, em 4 de outubro de 2026.`:null;
+    h=`<div class="jgrid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">${jacPanel('Presidente · '+nome,P,uf,'0001',true)}${jacPanel('Governador · '+nome,G,uf,'0003',true,gnote)}</div>`;
+  }
+  box.innerHTML=`<div class="phead"><div><div class="ptit">Evolução da apuração · ${esc(nome)}</div><div class="mut sm">Eixo horizontal: seções apuradas. Eixo vertical: votos válidos. Passe o cursor nos nós para ver o horário do TSE.</div></div><button class="pclose" id="jclose" title="Fechar">✕</button></div>${h}
+  <p class="sm mut" style="margin-top:14px;line-height:1.45">Cada nó é uma leitura feita por este painel, a cada 45 segundos, e fica guardada neste navegador. O TSE publica apenas o instante atual: com o painel fechado, não há registro. Para ter a curva completa, deixe o painel aberto desde o início da apuração.</p>`;
+  $('jclose').onclick=jacClose;
+}
+function jacOpen(){$('jmodal').classList.add('on');jacDraw();jacPull().catch(()=>{})}
+function jacClose(){$('jmodal').classList.remove('on')}
+(function(){const m=document.createElement('div');m.id='jmodal';m.innerHTML='<div class="pbox" id="jbody" style="width:min(1040px,95vw)"></div>';document.body.appendChild(m);
+  m.addEventListener('click',e=>{if(e.target===m)jacClose()});document.addEventListener('keydown',e=>{if(e.key==='Escape')jacClose()})})();
+$('bJac').onclick=jacOpen;
+
+/* ===== série local da apuração ===== */
+const serieKey=()=>'ap26:'+S.turn+'/'+S.uf+'/'+S.cargo+(S.mun||'');
+function rec(d,cs){
+  try{const key=serieKey();const arr=JSON.parse(localStorage.getItem(key)||'[]');
+    const s=sec(d),a=cs[0],b=cs[1],pt={t:Date.now(),p:s.p,a:a.p,b:b.p,va:a.v,vb:b.v,na:a.nm,nb:b.nm};
+    const last=arr[arr.length-1];if(last&&last.va===pt.va&&last.vb===pt.vb&&last.p===pt.p)return;
+    arr.push(pt);while(arr.length>300)arr.shift();localStorage.setItem(key,JSON.stringify(arr))}catch(e){}
+}
+function serieCard(){
+  let arr=[];try{arr=JSON.parse(localStorage.getItem(serieKey())||'[]')}catch(e){}
+  if(arr.length<2)return '';
+  const W=300,H=90,xs=arr.map((_,i)=>i/(arr.length-1)*W),ys=arr.map(q=>q.a-q.b),mn=Math.min(...ys,0),mx=Math.max(...ys,0.01),rg=(mx-mn)||1;
+  const yy=v=>(H-6-(v-mn)/rg*(H-12)).toFixed(1);
+  const pts=arr.map((q,i)=>xs[i].toFixed(1)+','+yy(ys[i])).join(' ');
+  const f=arr[0],l=arr[arr.length-1],hm=t=>new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  return `<div class="card"><h3><span>Evolução da vantagem</span><span>${arr.length} leituras</span></h3>
+  <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:90px"><line x1="0" x2="${W}" y1="${yy(0)}" y2="${yy(0)}" stroke="#2a3652" stroke-dasharray="3 3"/><polyline points="${pts}" fill="none" stroke="#7cf2c8" stroke-width="2" stroke-linejoin="round"/></svg>
+  <div class="row sm mut"><span>${hm(f.t)} · ${pc(f.p,1)} apurado</span><span>${hm(l.t)} · ${pc(l.p,1)}</span></div>
+  <div class="sm" style="margin-top:8px">Vantagem de ${esc(l.na)} sobre ${esc(l.nb)}: <b class="num">${(l.a-l.b).toFixed(2).replace('.',',')} p.p.</b> (era ${(f.a-f.b).toFixed(2).replace('.',',')})</div>
+  <p class="sm mut" style="margin-top:8px;line-height:1.4">Leituras registradas neste navegador enquanto a página esteve aberta. O TSE publica só o instante atual.</p></div>`;
+}
+
+/* ===== parlamento ===== */
+
+/* ===== busca ===== */
+const qn=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const CGMAP={'0001':'pres','0003':'gov','0005':'sen','0006':'df','0007':'de','0008':'de'};
+function searchRes(q){
+  q=qn(q.trim());if(q.length<2)return[];
+  const out=[];
+  for(const u of UFKEYS)if(qn(UFS[u][0]).includes(q)||u===q)out.push({label:UFS[u][0],sub:'Estado',go:()=>go({uf:u,mun:null})});
+  const muns=[];for(const u in S.munList)for(const m of S.munList[u]){const n=qn(m.nm);if(n.includes(q))muns.push({n,m,u})}
+  muns.sort((a,b)=>(b.n.startsWith(q)-a.n.startsWith(q))||a.n.length-b.n.length);
+  for(const x of muns.slice(0,5))out.push({label:x.m.nm,sub:x.u==='zz'?'Cidade no exterior':'Município · '+UFS[x.u][0],go:()=>go({uf:x.u,mun:x.m.cd})});
+  const seen=new Set(),cs=[];
+  for(const [url,v] of cache){
+    const mm=url.match(/\/dados\/(\w+)\/(\w+?)-c(\d{4})-e00(\d+)-/);if(!mm||mm[1]!==mm[2])continue;
+    const t2=mm[4]==='6258'||mm[4]==='6260';if(t2!==(S.turn===2))continue;
+    const cg=CGMAP[mm[3]];if(!cg)continue;
+    for(const c of cands(v.d)){if(!qn(c.nm).includes(q))continue;const k=cg+c.sq;if(seen.has(k))continue;seen.add(k);cs.push({c,cg,uf:mm[1]})}
+  }
+  cs.sort((a,b)=>b.c.v-a.c.v);
+  for(const x of cs.slice(0,7))out.push({label:x.c.nm,sub:`${x.c.sg} · ${cargoNome(x.cg,x.uf)}${x.uf==='br'?'':' · '+x.uf.toUpperCase()}`,go:()=>pickCand({...x.c,cg:x.cg,uf:x.uf})});
+  return out.slice(0,12);
+}
+const qi=$('q'),qr=$('qres');let qcur=[];
+qi.oninput=()=>{qcur=searchRes(qi.value);qr.innerHTML=qcur.map((r,i)=>`<div class="qi" data-i="${i}"><b>${esc(r.label)}</b><span>${esc(r.sub)}</span></div>`).join('');qr.style.display=qcur.length?'block':'none'};
+const qclose=()=>{qi.value='';qr.style.display='none'};
+qr.onclick=e=>{const it=e.target.closest('.qi');if(!it)return;const r=qcur[+it.dataset.i];qclose();r.go()};
+qi.onkeydown=e=>{if(e.key==='Enter'&&qcur[0]){const r=qcur[0];qclose();r.go()}else if(e.key==='Escape')qclose()};
+document.addEventListener('click',e=>{if(!e.target.closest('.srch'))qr.style.display='none'});
+function prefetch(){setTimeout(()=>{pool(UFKEYS,4,async uf=>{await getUF(uf,'gov');await getUF(uf,'sen')})},1500)}
+
+/* ===== compartilhar e exportar ===== */
+function toast(m){let t=$('toast');if(!t){t=document.createElement('div');t.id='toast';t.className='toast';document.body.appendChild(t)}t.textContent=m;t.style.opacity=1;clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.opacity=0,2600)}
+function save(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+const slug=()=>`apuracao-2026-${S.turn}t-${S.uf}-${S.cargo}-${S.layer}`;
+function shareTxt(){const u=/^https?:/.test(location.protocol)?location.href:'';const t=(S.sumTxt||document.title)+(u?'\n'+u:'');return {t,u}}
+$('bShare').onclick=()=>shareWithImage(false);
+$('bWa').onclick=()=>shareWithImage(true);
+$('bCsv').onclick=()=>{
+  const head=['unidade','codigo','cargo','lider_ou_candidato','partido','pct','votos','segundo','pct_segundo','margem_pp','abstencao_pct','apuracao_pct'];const rows=[];
+  if(S.layer==='cand'&&S.cand)candUnits().forEach(u=>rows.push([u.nome,u.id,cargoNome(S.cand.cg,S.uf),S.cand.nm,S.cand.sg,u.sh,u.v,'','','','','']));
+  else for(const u of units(S.mapCargo)){const l=u.l,x=l.second;rows.push([u.nome,u.id,cargoNome(S.mapCargo,S.uf),l.nm,l.sg,l.p,l.v,x?x.nm:'',x?x.p:'',l.mg,l.abs,l.sec])}
+  if(!rows.length){toast('Ainda não há dados carregados nesta visão.');return}
+  const f=v=>typeof v==='number'?String(Math.round(v*100)/100).replace('.',','):'"'+String(v??'').replace(/"/g,'""')+'"';
+  save(new Blob(['﻿'+[head.join(';'),...rows.map(r=>r.map(f).join(';'))].join('\r\n')],{type:'text/csv;charset=utf-8'}),slug()+'.csv');
+};
+async function makePng(){
+  {
+    const svg=$('map').cloneNode(true);svg.setAttribute('xmlns','http://www.w3.org/2000/svg');svg.setAttribute('width',1200);svg.setAttribute('height',1200);svg.removeAttribute('class');svg.removeAttribute('style');
+    svg.querySelectorAll('path[data-id]').forEach(p=>{const sel=p.classList.contains('sel'),t2=p.classList.contains('t2u');p.setAttribute('stroke',sel?'#7cf2c8':t2?'#f5b942':'#05070c');p.setAttribute('stroke-width',sel||t2?'2':'.6');if(t2)p.setAttribute('stroke-dasharray','5 3');p.setAttribute('vector-effect','non-scaling-stroke')});
+    svg.querySelectorAll('text.hl').forEach(t=>{t.setAttribute('fill','#fff');t.setAttribute('stroke','#05070c');t.setAttribute('stroke-width','3');t.setAttribute('paint-order','stroke');t.setAttribute('font-size',t.classList.contains('zl')?'8':'13');t.setAttribute('font-weight','700');t.setAttribute('font-family','sans-serif');t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','central')});
+    const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
+    const im=new Image();await new Promise((ok,er)=>{im.onload=ok;im.onerror=er;im.src=url});
+    const W=1200,Hh=1400,cv=document.createElement('canvas');cv.width=W;cv.height=Hh;const g=cv.getContext('2d');
+    g.fillStyle='#07090f';g.fillRect(0,0,W,Hh);g.drawImage(im,0,0,W,1200);
+    g.fillStyle='#5d6b88';g.font='600 18px sans-serif';g.fillText($('mk').textContent.toUpperCase(),40,46);
+    g.fillStyle='#e8edf7';g.font='700 36px sans-serif';g.fillText($('mv').textContent,40,90);
+    let x=40,y=1236;g.font='500 20px sans-serif';
+    for(const sp of $('legend').children){const i=sp.querySelector('i'),txt=sp.textContent.trim().replace(/\s+/g,' '),w=g.measureText(txt).width+34;if(x+w>W-40){x=40;y+=32}
+      if(i){const col=getComputedStyle(i).backgroundColor;if(col&&col!=='rgba(0, 0, 0, 0)'){g.fillStyle=col;g.fillRect(x,y-14,14,14)}else if(/gradient/.test(getComputedStyle(i).backgroundImage)){const m=getComputedStyle(i).backgroundImage.match(/rgba?\([^)]+\)|#[0-9a-f]{3,6}/i);if(m){g.fillStyle=m[0];g.fillRect(x,y-14,14,14);g.strokeStyle='#05070c';g.lineWidth=2;for(let k=-14;k<14;k+=5){g.beginPath();g.moveTo(x+k,y);g.lineTo(x+k+14,y-14);g.stroke()}}}else if(/245, 185, 66/.test(getComputedStyle(i).boxShadow)){g.strokeStyle='#f5b942';g.lineWidth=2;g.strokeRect(x+1,y-13,12,12)}}
+      g.fillStyle='#9aa8c4';g.fillText(txt,x+(i?22:0),y);x+=w+18}
+    g.fillStyle='#5d6b88';g.font='500 17px sans-serif';g.fillText('Desenvolvido por Luciano Victor com apoio de IA (Claude, Anthropic)  ·  v. 6.0  ·  Fonte: TSE e IBGE  ·  '+$('stamp').textContent,40,1372);
+    const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));URL.revokeObjectURL(url);return blob;
+  }
+}
+$('bPng').onclick=async()=>{try{save(await makePng(),slug()+'.png')}catch(e){toast('Não foi possível gerar a imagem neste navegador.')}};
+/* WhatsApp (v5.9): imagem do mapa + resumo
+   celular: compartilhamento do sistema com o arquivo e o texto juntos;
+   computador: imagem na área de transferência e conversa aberta com o texto (basta colar). */
+const isTouch=()=>matchMedia('(pointer:coarse)').matches;
+async function shareWithImage(viaWa){
+  const {t,u}=shareTxt();let blob=null;
+  try{blob=await makePng()}catch(e){}
+  const file=blob?new File([blob],slug()+'.png',{type:'image/png'}):null;
+  if(file&&(isTouch()||!viaWa)&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],text:t,title:document.title});return}catch(e){if(e&&e.name==='AbortError')return}
+  }
+  if(!viaWa){try{await navigator.clipboard.writeText(t);toast(u?'Resumo e link copiados.':'Resumo copiado.')}catch(e){toast('Não foi possível copiar neste navegador.')}return}
+  let how='';
+  if(blob){try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);how='copiada'}catch(e){save(blob,slug()+'.png');how='baixada'}}
+  window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank','noopener');
+  toast(how==='copiada'?'Imagem copiada. Na conversa do WhatsApp, cole com Ctrl+V antes de enviar.':how==='baixada'?'Imagem baixada. Anexe o arquivo na conversa do WhatsApp.':'Não foi possível gerar a imagem; segue só o resumo.');
+}
+
+/* ===== cadeiras (v4) ===== */
+const PARL={cur:null,tab:null,nat:null,sets:{}};
+function mkSet(els,vagas,extra){
+  extra=extra||0;
+  const g={};els.forEach(x=>{(g[x.sg]=g[x.sg]||[]).push(x)});
+  const grp=Object.entries(g).map(([sg,a])=>{a.sort((p,q)=>q.v-p.v);return [sg,a,a.reduce((s,x)=>s+x.v,0)]}).sort((a,b)=>b[1].length-a[1].length||b[2]-a[2]);
+  const seats=[];grp.forEach(([sg,a])=>a.forEach(x=>seats.push(x)));
+  const base=Math.max(vagas||0,seats.length);
+  while(seats.length<base)seats.push({sg:'—',nm:'Vaga ainda não definida',v:0,empty:true});
+  for(let i=0;i<extra;i++)seats.push({sg:'—',nm:'Mandato até 2031 (eleito em 2022)',v:0,empty:true,fixed:true});
+  return {seats,grp:grp.map(([sg,a])=>[sg,a.length]),n:els.length,tot:base+extra,extra};
+}
+function parlSvg(set){
+  const tot=set.tot;if(!tot)return '';
+  const rows=Math.max(3,Math.min(10,Math.round(Math.sqrt(tot)/2.2))),r0=.42;
+  const radii=Array.from({length:rows},(_,i)=>r0+(1-r0)*i/(rows-1));
+  const sr=radii.reduce((a,b)=>a+b,0);const counts=radii.map(r=>Math.round(tot*r/sr));counts[rows-1]+=tot-counts.reduce((a,b)=>a+b,0);
+  const dots=[];radii.forEach((r,i)=>{const n=counts[i];for(let j=0;j<n;j++)dots.push({th:n===1?Math.PI/2:Math.PI-j*Math.PI/(n-1),r})});
+  dots.sort((a,b)=>b.th-a.th||a.r-b.r);
+  const R=140,cx=150,cy=150,gap=R*(1-r0)/Math.max(rows-1,1),arc=Math.PI*R/Math.max(counts[rows-1]-1,1),dr=Math.max(1.2,Math.min(gap*.42,arc*.46));
+  const sv=dots.map((d,i)=>{const s=set.seats[i];const sg=s?s.sg:'—';return `<circle data-i="${i}" data-sg="${esc(sg)}" cx="${(cx+Math.cos(d.th)*R*d.r).toFixed(1)}" cy="${(cy-Math.sin(d.th)*R*d.r).toFixed(1)}" r="${dr.toFixed(1)}" fill="${s&&s.fixed?'#4a5878':sg==='—'?'#26324d':colorOf(sg)}"/>`}).join('');
+  return `<svg class="psv" viewBox="0 0 300 158" style="width:100%">${sv}<text x="150" y="140" text-anchor="middle" fill="#e8edf7" font-size="26" font-weight="700">${set.n}</text><text x="150" y="154" text-anchor="middle" fill="#7e8aa6" font-size="9">de ${tot} cadeiras</text></svg>`;
+}
+const ptip=(()=>{const d=document.createElement('div');d.id='ptip';document.body.appendChild(d);return d})();
+function bindSeats(root,set){
+  if(!root)return;
+  root.onmouseover=e=>{const c=e.target.closest('[data-i]');if(!c){ptip.style.display='none';return}
+    const s=set.seats[+c.dataset.i];if(!s)return;
+    ptip.innerHTML=s.empty?`<b>${esc(s.nm)}</b>`:`<b>${esc(s.nm)}</b><br><span style="color:${colorOf(s.sg)}">●</span> ${esc(s.sg)}${s.uf?' · '+s.uf.toUpperCase():''}${s.tag?' · '+s.tag:''}<br><span class="num" style="color:var(--tx3)">${fmt(s.v)} votos</span>`;ptip.style.display='block'};
+  root.onmousemove=e=>{if(ptip.style.display==='none')return;const w=ptip.offsetWidth;ptip.style.left=Math.min(e.clientX+14,innerWidth-w-8)+'px';ptip.style.top=(e.clientY+16)+'px'};
+  root.onmouseleave=()=>{ptip.style.display='none'};
+}
+function parlMini(set){
+  if(!set||!set.tot)return '';
+  const leg=set.grp.slice(0,8).map(([sg,n])=>`<span><i style="background:${colorOf(sg)}"></i>${esc(sg)} <span class="num" style="color:var(--tx3)">${n}</span></span>`).join('');
+  return `<div class="card" id="parl" title="Clique para abrir a composição"><h3><span>Mapa de cadeiras</span><span>abrir ↗</span></h3>${parlSvg(set)}<div class="legend2">${leg}</div></div>`;
+}
+function setParlCur(uf,cg,set){PARL.cur={uf,cg};PARL.sets={[uf+'/'+cg]:set};if($('pmodal').classList.contains('on'))drawParl()}
+function bindParlMini(){const el=$('parl');if(!el)return;const k=PARL.cur.uf+'/'+PARL.cur.cg;bindSeats(el,PARL.sets[k]);el.onclick=openParl}
+async function parlGet(uf,cg){
+  const k=uf+'/'+cg;if(PARL.sets[k])return PARL.sets[k];
+  const d=await getUF(uf,cg);const s=mkSet(cands(d).filter(x=>x.e).map(x=>({...x,uf})),N(d.carg?.[0]?.nv),cg==='sen'?(uf==='br'?27:1):0);PARL.sets[k]=s;return s;
+}
+function openParl(){
+  if(!PARL.cur)return;PARL.tab=PARL.cur.cg;$('pmodal').classList.add('on');drawParl();
+}
+function closeParl(){$('pmodal').classList.remove('on');ptip.style.display='none'}
+async function drawParl(){
+  const {uf}=PARL.cur;let cg=PARL.tab||PARL.cur.cg;const box=$('pbody');
+  const tabs=PARL.cur.cg==='sen'?[['sen','Senadores']]:uf==='br'?[['df','Câmara dos Deputados']]:[['df','Deputados federais'],['de',cargoNome('de',uf)]];
+  let set=PARL.sets[uf+'/'+cg];
+  if(!set){box.innerHTML='<p class="mut" style="padding:30px;text-align:center">Carregando…</p>';try{set=await parlGet(uf,cg)}catch(e){box.innerHTML='<p class="mut" style="padding:30px;text-align:center">Dados indisponíveis no momento.</p>';return}}
+  if(PARL.tab&&PARL.tab!==cg)return;
+  const nome=uf==='br'?'Brasil':UFS[uf][0];
+  const leg=set.grp.map(([sg,n])=>`<span class="pchip" data-sg="${esc(sg)}"><i style="background:${colorOf(sg)}"></i>${esc(sg)} <b class="num">${n}</b></span>`).join('');
+  const occ=set.seats.filter(s=>!s.empty);
+  box.innerHTML=`<div class="phead"><div><div class="ptit">Composição · ${esc(nome)}</div><div class="mut sm">${set.n} de ${set.tot-(set.extra||0)} cadeiras definidas${cg==='sen'?` · ${set.extra} cinza: mandatos até 2031 (eleitos em 2022, fora desta base)`:''} · passe o cursor para ver o ocupante</div></div>
+   <div class="ptabs">${tabs.map(([k,n])=>`<button data-k="${k}" class="${k===cg?'on':''}">${esc(n)}</button>`).join('')}</div><button class="pclose" id="pclose" title="Fechar">✕</button></div>
+   <div id="pchart">${parlSvg(set)}</div><div class="pleg">${leg}</div>
+   <input class="lsrch" id="pq" placeholder="Filtrar por nome ou partido"><div class="pocc" id="pocc"></div>`;
+  const fill=q=>{q=qn(q||'');$('pocc').innerHTML=occ.filter(s=>!q||qn(s.nm).includes(q)||qn(s.sg).includes(q)).map(s=>`<div class="po"><i style="background:${colorOf(s.sg)}"></i><span>${esc(s.nm)}</span><small>${esc(s.sg)}${s.uf&&uf==='br'?' · '+s.uf.toUpperCase():''}</small></div>`).join('')||'<span class="mut">Nenhum resultado</span>'};
+  fill('');$('pq').oninput=e=>{fill(e.target.value);hl(null)};
+  const hl=sg=>$('pchart').querySelectorAll('circle').forEach(c=>c.style.opacity=!sg||c.dataset.sg===sg?1:.15);
+  box.querySelectorAll('.pchip').forEach(ch=>{ch.onmouseenter=()=>hl(ch.dataset.sg);ch.onmouseleave=()=>hl(null)});
+  box.querySelectorAll('.ptabs button').forEach(b=>b.onclick=()=>{PARL.tab=b.dataset.k;drawParl()});
+  $('pclose').onclick=closeParl;bindSeats($('pchart'),set);
+}
+(function(){const m=document.createElement('div');m.id='pmodal';m.innerHTML='<div class="pbox" id="pbody"></div>';document.body.appendChild(m);
+  m.addEventListener('click',e=>{if(e.target===m)closeParl()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeParl()})})();
+/* busca na lista de candidatos */
+function bindListSearch(cs,cg,uf){
+  const q=$('lq'),r=$('lres');if(!q)return;
+  q.oninput=()=>{const t=qn(q.value.trim());if(!t){r.innerHTML='';return}
+    const m=cs.filter(x=>qn(x.nm).includes(t)||String(x.n)===t||qn(x.sg)===t).slice(0,8);
+    r.innerHTML=m.length?m.map((x,i)=>`<div class="it click" data-i="${i}"><span class="nm">${esc(x.nm)}<small>${esc(x.sg)} · ${esc(x.n)}</small></span><span class="pc">${pc(x.p)}</span></div>`).join(''):'<div class="mut sm" style="padding:8px 0">Nenhum candidato encontrado nesta lista</div>';
+    r.querySelectorAll('.it.click').forEach(el=>el.onclick=()=>pickCand({...m[+el.dataset.i],cg,uf}))};
+}
+
+/* ===== governadores por partido (v5) ===== */
+const GOV={set:null};
+function govSet(rows){
+  const it=rows.map(r=>{const c=r.cs[0];if(!c)return null;const el=!!c.e;const t2=!el&&(S.turn===2?!govDone(r.uf):r.cs.slice(0,2).some(x=>/2º/.test(x.st)));
+    return {...c,uf:r.uf,el,t2,tag:el?'eleito':t2?'2º turno':'em apuração',nm:c.nm}}).filter(Boolean);
+  const g={};it.forEach(x=>{(g[x.sg]=g[x.sg]||[]).push(x)});
+  const grp=Object.entries(g).map(([sg,a])=>{a.sort((p,q)=>(q.el-p.el)||q.v-p.v);return [sg,a]}).sort((a,b)=>b[1].filter(x=>x.el).length-a[1].filter(x=>x.el).length||b[1].length-a[1].length);
+  const seats=[];grp.forEach(([sg,a])=>a.forEach(x=>seats.push(x)));
+  return {seats,grp,el:it.filter(x=>x.el).length,t2:it.filter(x=>x.t2).length};
+}
+function govMini(rows){
+  const s=GOV.set=govSet(rows);if(!s.seats.length)return '';
+  const W=28,G=4,C=9;
+  const sv=s.seats.map((x,i)=>{const cx=(i%C)*(W+G),cy=Math.floor(i/C)*(W+G),col=colorOf(x.sg);
+    return `<g data-i="${i}" style="cursor:pointer"><rect x="${cx}" y="${cy}" width="${W}" height="${W}" rx="6" fill="${col}" fill-opacity="${x.el?1:.28}" stroke="${col}" stroke-width="1.6" ${x.el?'':'stroke-dasharray="3 2"'}/><text x="${cx+W/2}" y="${cy+W/2+3}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${x.el?'#05070c':'#e8edf7'}" style="pointer-events:none">${x.uf.toUpperCase()}</text></g>`}).join('');
+  const h=Math.ceil(s.seats.length/C)*(W+G)-G;
+  const leg=s.grp.map(([sg,a])=>{const e=a.filter(x=>x.el).length,t=a.length-e;return `<span><i style="background:${colorOf(sg)}"></i>${esc(sg)} <span class="num" style="color:var(--tx3)">${e}${t?' +'+t:''}</span></span>`}).join('');
+  return `<div class="card" id="govm"><h3><span>Governadores por partido</span><span>${s.el} eleitos${s.t2?' · '+s.t2+' em 2º turno':''}</span></h3><svg class="psv" viewBox="0 0 ${C*(W+G)-G} ${h}" style="width:100%">${sv}</svg><div class="legend2">${leg}</div>${s.seats.some(x=>!x.el)?'<div class="mut sm" style="margin-top:8px">Tracejado: líder em disputa de 2º turno ou em apuração. Clique para abrir o estado.</div>':''}</div>`;
+}
+function bindGov(){const el=$('govm');if(!el||!GOV.set)return;bindSeats(el,GOV.set);
+  el.onclick=e=>{const t=e.target.closest('[data-i]');if(!t)return;const s=GOV.set.seats[+t.dataset.i];if(s)go({uf:s.uf,cargo:'gov',mun:null})}}
+const clearCand=()=>go({cand:null,layer:'lider',cargo:S.cargo});
+
+/* ===== atualização periódica ===== */
+let next=45;
+setInterval(()=>{
+  next--;$('foot').textContent=next>0?`próxima leitura em ${next}s`:'lendo…';
+  if(next>0)return;next=45;
+  if(!S.t2ok)probeT2();
+  else if(S.turn===1&&!S.autoT2&&new Date()>=T2_DATE){S.autoT2=true;go({turn:2,mun:null});return}
+  render(true).catch(()=>$('dot').classList.add('err'));
+  jacPull().catch(()=>{});
+},1000);
+
+fromHash();
+window.__T={S,go,cache,leaders,render,deslVal,candUnits,candShare,mkSet,hexItems,probeT2};
+muniList('sp').catch(()=>{}).finally(()=>{loadCfg().finally(()=>{render().finally(prefetch);probeT2()});loadGovT2()});
+
+</script>
+</body>
+</html>
