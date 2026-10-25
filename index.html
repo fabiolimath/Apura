@@ -41,6 +41,10 @@ header{display:flex;align-items:center;gap:18px;padding:12px 22px;border-bottom:
 .live{display:flex;align-items:center;gap:8px;color:var(--tx2);font-size:12px;font-variant-numeric:tabular-nums}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 0 rgba(124,242,200,.6);animation:pulse 2s infinite}
 .dot.err{background:#ff5d6c;animation:none}
+.rfr{display:flex;align-items:center;gap:7px;background:var(--acc);color:#05070c;border:0;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 0 0 3px rgba(124,242,200,.18);transition:.18s}
+.rfr:hover{filter:brightness(1.08)}.rfr:active{transform:scale(.97)}
+.rfr:disabled{opacity:.7;cursor:progress}.rfr:disabled svg{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{70%{box-shadow:0 0 0 8px rgba(124,242,200,0)}100%{box-shadow:0 0 0 0 rgba(124,242,200,0)}}
 /* main */
 main{position:relative;display:grid;grid-template-columns:330px minmax(0,1fr) 350px;gap:16px;padding:16px 22px;min-height:0}
@@ -147,7 +151,7 @@ header{gap:12px;flex-wrap:nowrap}.brand{white-space:nowrap}.brand small{display:
   .tabs{max-width:calc(100vw - 24px);flex:0 1 auto;min-width:0}.layers{max-width:calc(100% - 16px)}
   header{padding:10px 12px;gap:8px}.brand{font-size:12px}
   .srch{flex:1 1 100%;order:5}.srch input,.srch input:focus{width:100%}.qres{width:100%}
-  .scope{order:4}.live{order:6;width:100%}
+  .scope{order:4}.live{order:6;flex:1;min-width:0}.rfr{order:7}
   .turns{order:3}
   .mapwrap{height:68vh;border-radius:16px}
   .maptitle{left:12px;top:10px;right:96px}.maptitle .v{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -219,6 +223,7 @@ header{gap:12px;flex-wrap:nowrap}.brand{white-space:nowrap}.brand small{display:
   <div class="sp"></div>
   <div class="scope"><span class="mut sm">Abrangência</span><button class="wbtn" id="bWorld" title="Votação no exterior"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.8 3.9 5.8 3.9 9s-1.3 6.2-3.9 9c-2.6-2.8-3.9-5.8-3.9-9S9.4 5.8 12 3z"/></svg></button><select id="ufsel"></select></div>
   <div class="live"><span class="dot" id="dot"></span><span id="stamp">carregando…</span></div>
+  <button class="rfr" id="bRfr" title="Buscar agora os dados mais recentes do TSE"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span>Atualizar</span></button>
 </header>
 <main>
   <section class="col l" id="colL"></section>
@@ -1401,6 +1406,12 @@ const clearCand=()=>go({cand:null,layer:'lider',cargo:S.cargo});
 
 /* ===== atualização periódica ===== */
 let next=45;
+$('bRfr').onclick=async()=>{
+  const b=$('bRfr');if(b.disabled)return;b.disabled=true;next=45;
+  try{if(!S.t2ok)probeT2().catch(()=>{});await render(true);jacPull().catch(()=>{})}catch(e){$('dot').classList.add('err')}
+  b.disabled=false;
+  toast($('dot').classList.contains('err')||$('stamp').title.startsWith('A última leitura')?'Não foi possível falar com o TSE agora. Tente de novo em instantes.':'Dados atualizados.');
+};
 setInterval(()=>{
   next--;$('foot').textContent=next>0?`próxima leitura em ${next}s`:'lendo…';
   if(next>0)return;next=45;
